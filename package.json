@@ -1,0 +1,50 @@
+{
+  "name": "hamme",
+  "version": "1.0.0",
+  "description": "MERN Stack Dating App - Hamme",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "build": "npm run client:build && npm run server:build",
+    "start": "npm run server:start",
+    "client:dev": "cd client && npm run dev",
+    "client:build": "cd client && npm run build",
+    "client:preview": "cd client && npm run preview",
+    "server:dev": "cd server && npm run dev",
+    "server:build": "cd server && npm run build",
+    "server:start": "cd server && npm run start",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "clean": "rm -rf client/dist client/node_modules server/dist server/node_modules node_modules",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mern",
+    "react",
+    "express",
+    "mongodb",
+    "typescript",
+    "dating-app",
+    "tailwindcss"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/hamme.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/hamme/issues"
+  },
+  "homepage": "https://github.com/yourusername/hamme#readme",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "lucide-react": "^0.544.0"
+  }
+}
