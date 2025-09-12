@@ -3,6 +3,7 @@ import { apiService } from '../services/api'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faInstagram } from '@fortawesome/free-brands-svg-icons'
 import QRCode from 'qrcode'
+import logo from '../assets/Hamme-logo.png'
 
 interface ShareActionsProps {
   profileUrl?: string
@@ -61,18 +62,28 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     canvas.width = 1080
     canvas.height = 1920
 
-    // Background gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
-    gradient.addColorStop(0, '#1f2937') // gray-800
-    gradient.addColorStop(1, '#111827') // gray-900
-    ctx.fillStyle = gradient
+    // Background to match onboarding (bg-violet-600)
+    ctx.fillStyle = '#7c3aed'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    // Soft overlay circles
-    ctx.fillStyle = 'rgba(168, 85, 247, 0.25)'
-    ctx.beginPath(); ctx.arc(200, 300, 240, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = 'rgba(236, 72, 153, 0.25)'
-    ctx.beginPath(); ctx.arc(900, 1650, 300, 0, Math.PI * 2); ctx.fill()
+    // Add Hamme logo at the top center
+    try {
+      const brand = new Image()
+      brand.src = logo
+      await new Promise<void>((resolve) => { brand.onload = () => resolve() ; brand.onerror = () => resolve() })
+      const brandMaxW = 520
+      const brandW = Math.min(brand.width || brandMaxW, brandMaxW)
+      const scale = brandW / (brand.width || brandMaxW)
+      const brandH = (brand.height || brandMaxW) * scale
+      const bx = (canvas.width - brandW) / 2
+      const by = 80
+      // subtle shadow to pop on violet
+      ctx.save()
+      ctx.shadowColor = 'rgba(0,0,0,0.25)'
+      ctx.shadowBlur = 16
+      ctx.drawImage(brand, bx, by, brandW, brandH)
+      ctx.restore()
+    } catch {}
 
     // Card container
     const cardW = 880

@@ -43,7 +43,7 @@ function Onboarding() {
       </div>
 
       {/* Bottom section with button and legal text */}
-      <div className="w-full max-w-sm text-center z-10">
+      <div className="w-full max-w-sm text-center z-10 mb-10 md:mb-0">
         <button 
           onClick={handleGetStarted}
           className="w-full bg-black text-white font-bold py-4 px-6 rounded-full text-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors duration-300 shadow-lg shadow-black/30"

@@ -128,7 +128,7 @@ function Login() {
         </form>
       </main>
 
-      <footer className="flex-shrink-0 w-full max-w-md mx-auto mt-auto pt-6">
+      <footer className="flex-shrink-0 w-full max-w-md mx-auto mt-auto pt-6 mb-8 md:mb-10">
         <button
           type="submit"
           form="login-form"
