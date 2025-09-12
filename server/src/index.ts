@@ -32,6 +32,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
   setHeaders: (res) => {
     res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || 'https://hamme.vercel.app');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   }
 }));
 

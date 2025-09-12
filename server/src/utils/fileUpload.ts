@@ -1,4 +1,5 @@
 import multer from 'multer'
+import sharp from 'sharp'
 import path from 'path'
 import fs from 'fs'
 import { Request, Response, NextFunction } from 'express'
@@ -18,8 +19,8 @@ const storage = multer.diskStorage({
     // Generate unique filename with timestamp and user ID
     const userId = req.user?.id || 'anonymous'
     const timestamp = Date.now()
-    const ext = path.extname(file.originalname)
-    const filename = `profile-${userId}-${timestamp}${ext}`
+    // Always store as webp (processed after upload)
+    const filename = `profile-${userId}-${timestamp}.webp`
     cb(null, filename)
   }
 })
@@ -99,5 +100,26 @@ export const deleteOldProfilePicture = (filename: string) => {
     }
   } catch (error) {
     console.error('Error deleting old profile picture:', error)
+  }
+}
+
+// Middleware to optimize uploaded image to webp and resize
+export const optimizeUploadedProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) return next()
+    const filePath = path.join(uploadDir, req.file.filename)
+    // Reprocess to reasonable size (max 1080px) and quality
+    await sharp(filePath)
+      .rotate()
+      .resize({ width: 1080, height: 1080, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toFile(filePath + '.tmp')
+
+    fs.renameSync(filePath + '.tmp', filePath)
+    next()
+  } catch (error) {
+    console.error('Image optimization failed:', error)
+    // Continue without blocking upload
+    next()
   }
 }

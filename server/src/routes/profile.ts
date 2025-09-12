@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express'
 import { User } from '../models/User'
 import { authenticateToken } from '../middleware/auth'
-import { upload, handleUploadError, deleteOldProfilePicture } from '../utils/fileUpload'
+import { upload, handleUploadError, deleteOldProfilePicture, optimizeUploadedProfile } from '../utils/fileUpload'
 
 const router = express.Router()
 
@@ -85,7 +85,7 @@ router.patch('/dob', authenticateToken, async (req: Request, res: Response) => {
 })
 
 // Upload profile picture file
-router.post('/upload-picture', authenticateToken, upload.single('profilePicture'), async (req: Request, res: Response) => {
+router.post('/upload-picture', authenticateToken, upload.single('profilePicture'), optimizeUploadedProfile, async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({
