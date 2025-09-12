@@ -113,11 +113,17 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     // Load profile image
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    img.src = user?.profilePicture ? (import.meta.env.VITE_API_URL || 'http://localhost:5000') + (user.profilePicture.startsWith('/') ? '' : '/') + user.profilePicture : ''
-    await new Promise<void>((resolve) => { img.onload = () => resolve() ; img.onerror = () => resolve() })
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    const profilePath = user?.profilePicture || ''
+    const imgUrl = profilePath ? (profilePath.startsWith('http') ? profilePath : `${base}${profilePath.startsWith('/') ? '' : '/'}${profilePath}`) : ''
+    let imgLoaded = false
+    if (imgUrl) {
+      img.src = imgUrl
+      await new Promise<void>((resolve) => { img.onload = () => { imgLoaded = true; resolve() } ; img.onerror = () => resolve() })
+    }
 
     // Draw image or fallback gradient
-    if (img.src) {
+    if (imgLoaded && img.naturalWidth > 0 && img.naturalHeight > 0) {
       // Cover
       const ratio = Math.max(imgW / img.width, imgH / img.height)
       const drawW = img.width * ratio
@@ -183,8 +189,17 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     ctx.fillText('Scan or tap link in my bio', canvas.width / 2, cardY + cardH + 56)
     ctx.textAlign = 'left'
 
-    // Return blob
-    return await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), 'image/png'))
+    // Return blob with fallback to toDataURL if needed
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'))
+    if (blob) return blob
+    const dataUrl = canvas.toDataURL('image/png')
+    // Convert dataURL to Blob
+    const byteString = atob(dataUrl.split(',')[1])
+    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0]
+    const ab = new ArrayBuffer(byteString.length)
+    const ia = new Uint8Array(ab)
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+    return new Blob([ab], { type: mimeString })
   }
 
   const handleInstagramShare = async () => {

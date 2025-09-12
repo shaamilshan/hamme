@@ -27,8 +27,13 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from public directory
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+// Serve static files from public directory with headers safe for canvas usage
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
+  setHeaders: (res) => {
+    res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || 'https://hamme.vercel.app');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 
 // Routes
 app.get('/', (req, res) => {
