@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 5000;
 // CORS configuration
 const corsOptions = {
   origin: process.env.CORS_ORIGIN ? 
-    [process.env.CORS_ORIGIN, 'http://localhost:5174'] : 
+    [process.env.CORS_ORIGIN,'https://hamme.vercel.app', 'http://localhost:5174'] : 
     ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
   optionsSuccessStatus: 200
