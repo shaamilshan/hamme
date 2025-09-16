@@ -13,6 +13,12 @@ interface User {
   bio?: string
 }
 
+interface ExistingVote {
+  choice: 'date' | 'friends' | 'reject'
+  votedAt: string
+  expiresAt: string
+}
+
 function PublicProfile() {
   const { userId } = useParams<{ userId: string }>()
   const navigate = useNavigate()
@@ -22,9 +28,9 @@ function PublicProfile() {
   const [submitting, setSubmitting] = useState(false)
   const [hasSubmitted, setHasSubmitted] = useState(false)
   const [matchResult, setMatchResult] = useState<any>(null)
+  const [existingVote, setExistingVote] = useState<ExistingVote | null>(null)
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+  const fetchProfile = async () => {
       if (!userId) {
         setError('Invalid profile link')
         setLoading(false)
@@ -34,6 +40,7 @@ function PublicProfile() {
       try {
         const response = await apiService.getPublicProfile(userId)
         setUser(response.data.user)
+        setExistingVote(response.data.existingVote || null)
       } catch (error: any) {
         console.error('Failed to fetch profile:', error)
         setError(error.response?.data?.message || 'Profile not found')
@@ -42,8 +49,45 @@ function PublicProfile() {
       }
     }
 
+  const isVoteExpired = () => {
+    if (!existingVote) return true
+    return new Date(existingVote.expiresAt).getTime() <= Date.now()
+  }
+
+  const getTimeRemaining = () => {
+    if (!existingVote) return ''
+    const expiresAt = new Date(existingVote.expiresAt).getTime()
+    const now = Date.now()
+    const remaining = expiresAt - now
+    
+    if (remaining <= 0) return 'Expired'
+    
+    const hours = Math.floor(remaining / (1000 * 60 * 60))
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`
+    }
+    return `${minutes}m`
+  }
+
+  useEffect(() => {
     fetchProfile()
   }, [userId])
+
+  // Set up timer to check vote expiration
+  useEffect(() => {
+    if (!existingVote) return
+    
+    const checkExpiration = () => {
+      if (isVoteExpired()) {
+        setExistingVote(null)
+      }
+    }
+    
+    const interval = setInterval(checkExpiration, 60000) // Check every minute
+    return () => clearInterval(interval)
+  }, [existingVote])
 
   const guardedChoice = async (choice: 'date' | 'friends' | 'reject') => {
     const token = localStorage.getItem('token')
@@ -139,6 +183,49 @@ function PublicProfile() {
             className="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
           >
             Go to Messages
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Show "Already Voted" state if user has voted and vote hasn't expired
+  if (existingVote && !isVoteExpired()) {
+    const getChoiceEmoji = (choice: string) => {
+      switch (choice) {
+        case 'date': return '💚'
+        case 'friends': return '👥'
+        case 'reject': return '❌'
+        default: return '✅'
+      }
+    }
+
+    const getChoiceText = (choice: string) => {
+      switch (choice) {
+        case 'date': return 'Dating'
+        case 'friends': return 'Friendship'
+        case 'reject': return 'Not Interested'
+        default: return choice
+      }
+    }
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8 bg-white/10 rounded-2xl backdrop-blur">
+          <img src={logo} alt="Hamme" className="h-8 w-auto mx-auto mb-4 opacity-90" />
+          <div className="text-6xl mb-4">{getChoiceEmoji(existingVote.choice)}</div>
+          <h2 className="text-2xl font-bold text-white mb-2">Already Voted</h2>
+          <p className="text-white/80 mb-4">
+            You chose "{getChoiceText(existingVote.choice)}" for {user?.name}
+          </p>
+          <p className="text-white/60 text-sm mb-6">
+            You can vote again in {getTimeRemaining()}
+          </p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
+          >
+            Go to Dashboard
           </button>
         </div>
       </div>

@@ -7,9 +7,10 @@ import { authenticateToken, optionalAuth } from '../middleware/auth'
 const router = express.Router()
 
 // Get public profile by user ID (for shared links)
-router.get('/public/:userId', async (req: Request, res: Response) => {
+router.get('/public/:userId', optionalAuth, async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
+    const currentUserId = req.user?._id
     
     const user = await User.findById(userId).select('-password -email')
     
@@ -33,6 +34,29 @@ router.get('/public/:userId', async (req: Request, res: Response) => {
       computedAge = a
     }
 
+    // Check if current user has already voted for this profile
+    let existingVote = null
+    if (currentUserId) {
+      const profileView = await ProfileView.findOne({
+        viewerId: currentUserId,
+        viewedUserId: userId
+      })
+      
+      if (profileView) {
+        // Check if vote is still valid (within 24 hours)
+        const voteAge = Date.now() - profileView.createdAt.getTime()
+        const twentyFourHours = 24 * 60 * 60 * 1000
+        
+        if (voteAge < twentyFourHours) {
+          existingVote = {
+            choice: profileView.choice,
+            votedAt: profileView.createdAt,
+            expiresAt: new Date(profileView.createdAt.getTime() + twentyFourHours)
+          }
+        }
+      }
+    }
+
     res.json({
       success: true,
       user: {
@@ -41,7 +65,8 @@ router.get('/public/:userId', async (req: Request, res: Response) => {
         age: computedAge,
         profilePicture: user.profilePicture,
         bio: user.bio
-      }
+      },
+      existingVote
     })
 
   } catch (error) {
@@ -224,7 +249,7 @@ router.get('/matches', authenticateToken, async (req: Request, res: Response) =>
     }).populate('user1Id user2Id', '-password -email')
 
     const formattedMatches = matches.map(match => {
-      const otherUser = match.user1Id._id.toString() === userId 
+      const otherUser = match.user1Id._id.toString() === userId.toString() 
         ? match.user2Id 
         : match.user1Id
 

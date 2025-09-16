@@ -29,6 +29,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/sharp": "^0.31.1",
     "concurrently": "^8.2.2"
   },
   "engines": {

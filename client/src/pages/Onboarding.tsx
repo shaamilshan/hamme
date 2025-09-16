@@ -9,7 +9,7 @@ function Onboarding() {
 
   return (
     // Removed padding by changing p-8 to p-0
-    <div className="min-h-screen bg-violet-600 flex flex-col items-center justify-between px-0 py-8 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-violet-600 flex flex-col items-center justify-between p-8 relative overflow-hidden font-sans">
       
       {/* Decorative Floating Icons */}
       {/* NOTE: These are emoji placeholders. For a production app, you should replace these 
@@ -43,7 +43,7 @@ function Onboarding() {
       </div>
 
       {/* Bottom section with button and legal text */}
-      <div className="w-full max-w-sm text-center z-10 mb-10 md:mb-0">
+      <div className="w-full max-w-sm text-center z-10">
         <button 
           onClick={handleGetStarted}
           className="w-full bg-black text-white font-bold py-4 px-6 rounded-full text-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors duration-300 shadow-lg shadow-black/30"

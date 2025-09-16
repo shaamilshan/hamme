@@ -48,10 +48,14 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
 
   const fetchData = async () => {
     try {
+      setLoading(true)
       const [pendingResponse, matchesResponse] = await Promise.all([
         apiService.getPendingProfiles(),
         apiService.getMatches()
       ])
+      
+      console.log('Pending profiles:', pendingResponse.data.profiles)
+      console.log('Matches:', matchesResponse.data.matches)
       
       setPendingProfiles(pendingResponse.data.profiles)
       setMatches(matchesResponse.data.matches)
@@ -135,7 +139,9 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
                     )}
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="text-sm text-gray-900 font-semibold">You have been Matched with <span className="text-purple-700 font-bold">{match.user.name}</span></p>
+                    <p className="text-sm text-gray-900 font-semibold">
+                      You matched with <span className="text-purple-700 font-bold">{match.user.name}</span>
+                    </p>
                     <p className="text-xs text-gray-500">{hoursLeft(match.createdAt)} Hours left</p>
                   </div>
                 </div>
