@@ -4,7 +4,7 @@ import { apiService } from '../services/api';
 
 // --- Helper Hooks and Data ---
 
-// (Removed wheel helper — using native inputs/selects instead)
+// --- Helper Hooks and Data ---
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -56,6 +56,17 @@ function SetupDOB() {
   const handleContinue = async () => {
     if (age === null) return;
 
+    // basic validity checks for numeric ranges
+    if (month < 1 || month > 12) {
+      setError('Please enter a valid date of birth.');
+      return;
+    }
+    const maxDay = new Date(year, month, 0).getDate();
+    if (day < 1 || day > maxDay) {
+      setError('Please enter a valid date of birth.');
+      return;
+    }
+
     if (age < 13) {
       setError('You must be at least 13 years old to use this app.');
       return;
@@ -81,18 +92,43 @@ function SetupDOB() {
     }
   };
   
-  // --- UI: keyboard-friendly inputs for Day / Month / Year ---
-  // Helpers for calendar input
-  const dobRef = useRef<HTMLInputElement | null>(null);
-  const calendarRef = useRef<HTMLDivElement | null>(null);
-  const [showCalendar, setShowCalendar] = useState<boolean>(false);
-  const formatInputDate = (y: number, m: number, d: number) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  const maxSelectableDate = (() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 13); // enforce minimum age of 13 via max date
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
-  const minSelectableDate = `${CURRENT_YEAR - 100}-01-01`;
+  // --- UI: scroll-wheel inputs for Day / Month / Year ---
+  // Refs for the three input boxes (day, month, year)
+  const dayInputRef = useRef<HTMLInputElement | null>(null);
+  const monthInputRef = useRef<HTMLInputElement | null>(null);
+  const yearInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Controlled string inputs so users can type '07 10 2003'
+  const [dayStr, setDayStr] = useState<string>(String(day).padStart(2, '0'));
+  const [monthStr, setMonthStr] = useState<string>(String(month).padStart(2, '0'));
+  const [yearStr, setYearStr] = useState<string>(String(year));
+
+  // (daysInMonth computed on demand where needed)
+
+  // sync numeric states when the string inputs change
+  useEffect(() => {
+    const parsedDay = Math.max(1, Math.min(31, parseInt(dayStr || '0', 10) || 1));
+    const parsedMonth = Math.max(1, Math.min(12, parseInt(monthStr || '0', 10) || 1));
+    const parsedYear = parseInt(yearStr || String(year), 10) || year;
+    // Only update when different to avoid extra renders
+    if (parsedDay !== day) setDay(parsedDay);
+    if (parsedMonth !== month) setMonth(parsedMonth);
+    if (parsedYear !== year) setYear(parsedYear);
+    // clear any previous error while editing
+    setError('');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayStr, monthStr, yearStr]);
+
+  // If month or year changes, ensure the day string/value doesn't exceed that month's max days
+  useEffect(() => {
+    const maxDay = new Date(year, month, 0).getDate();
+    const currentDay = parseInt(dayStr || '0', 10) || day;
+    if (currentDay > maxDay) {
+      const newDayStr = String(maxDay).padStart(2, '0');
+      setDayStr(newDayStr);
+      setDay(maxDay);
+    }
+  }, [month, year, dayStr, day]);
 
 
   return (
@@ -134,52 +170,88 @@ function SetupDOB() {
         <div className="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-xl p-6">
           <p className="text-sm text-gray-500 mb-4">Enter your date of birth so we can confirm your eligibility.</p>
 
-          {/* Calendar picker (native date input) */}
-          <div className="w-full relative my-4">
-            <label htmlFor="dob" className="sr-only">Date of birth</label>
-            <div className="relative">
-              <div
-                className="absolute inset-y-0 left-3 flex items-center cursor-pointer z-20"
-                onClick={() => setShowCalendar((s) => !s)}
-                role="button"
-                aria-label="Open date picker"
-              >
-                {/* calendar icon */}
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+          {/* Three input boxes: Day, Month, Year */}
+          <div className="w-full relative my-8">
+            <div className="relative z-10 grid grid-cols-3 gap-4 text-center items-center">
+              <div>
+                <label htmlFor="day" className="sr-only">Day</label>
+                <input
+                  id="day"
+                  ref={dayInputRef}
+                  value={dayStr}
+                  type="text"
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+                    setDayStr(v);
+                    // defer focusing the next input to the next tick so the second keystroke isn't interrupted
+                    if (v.length === 2) setTimeout(() => monthInputRef.current?.focus(), 0);
+                    setError('');
+                  }}
+                  onBlur={() => {
+                    // pad and clamp to valid day for the current month/year
+                    const padded = String((parseInt(dayStr || '0', 10) || 1)).padStart(2, '0');
+                    let num = parseInt(padded, 10);
+                    const max = new Date(year, month, 0).getDate();
+                    if (num < 1) num = 1;
+                    if (num > max) num = max;
+                    setDayStr(String(num).padStart(2, '0'));
+                  }}
+                  inputMode="numeric"
+                  maxLength={2}
+                  className="mx-auto w-28 bg-gray-100 rounded-full h-14 text-center text-lg font-medium placeholder-gray-400"
+                />
               </div>
 
-              {/* Text input showing formatted date; clicking focuses and toggles calendar */}
-              <input
-                id="dob"
-                ref={dobRef}
-                type="text"
-                onClick={() => setShowCalendar(true)}
-                value={formatInputDate(year, month, day)}
-                readOnly
-                className="w-full pl-12 pr-4 text-center text-lg font-medium border border-gray-200 rounded-xl py-3 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                aria-label="Date of birth"
-              />
+              <div>
+                <label htmlFor="month" className="sr-only">Month</label>
+                <input
+                  id="month"
+                  ref={monthInputRef}
+                  value={monthStr}
+                  type="text"
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+                    setMonthStr(v);
+                    if (v.length === 2) setTimeout(() => yearInputRef.current?.focus(), 0);
+                    setError('');
+                  }}
+                  onBlur={() => {
+                    let num = parseInt(monthStr || '0', 10) || 1;
+                    if (num < 1) num = 1;
+                    if (num > 12) num = 12;
+                    setMonthStr(String(num).padStart(2, '0'));
+                  }}
+                  inputMode="numeric"
+                  maxLength={2}
+                  className="mx-auto w-32 bg-gray-100 rounded-full h-14 text-center text-lg font-medium placeholder-gray-400"
+                />
+              </div>
 
-              {/* Calendar popover */}
-              {showCalendar && (
-                <div
-                  ref={calendarRef}
-                  className="absolute top-full left-0 mt-3 bg-white rounded-lg shadow-lg p-4 z-30 w-80"
-                >
-                  <Calendar
-                    year={year}
-                    month={month}
-                    minDate={minSelectableDate}
-                    maxDate={maxSelectableDate}
-                    onMonthChange={(y, m) => { setYear(y); setMonth(m); }}
-                    onPick={(y, m, d) => {
-                      setYear(y); setMonth(m); setDay(d); setShowCalendar(false);
-                    }}
-                  />
-                </div>
-              )}
+              <div>
+                <label htmlFor="year" className="sr-only">Year</label>
+                <input
+                  id="year"
+                  ref={yearInputRef}
+                  value={yearStr}
+                  type="text"
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setYearStr(v);
+                    setError('');
+                  }}
+                  onBlur={() => {
+                    let num = parseInt(yearStr || String(year), 10) || year;
+                    const min = CURRENT_YEAR - 100;
+                    const max = CURRENT_YEAR;
+                    if (num < min) num = min;
+                    if (num > max) num = max;
+                    setYearStr(String(num));
+                  }}
+                  inputMode="numeric"
+                  maxLength={4}
+                  className="mx-auto w-36 bg-gray-100 rounded-full h-14 text-center text-lg font-medium placeholder-gray-400"
+                />
+              </div>
             </div>
           </div>
         
@@ -211,103 +283,3 @@ function SetupDOB() {
 }
 
 export default SetupDOB;
-
-// ----------------------
-// Inline Calendar component
-// ----------------------
-interface CalendarProps {
-  year: number;
-  month: number; // 1-12
-  minDate: string; // 'YYYY-MM-DD'
-  maxDate: string;
-  onMonthChange: (year: number, month: number) => void;
-  onPick: (year: number, month: number, day: number) => void;
-}
-
-const Calendar: React.FC<CalendarProps> = ({ year, month, minDate, maxDate, onMonthChange, onPick }) => {
-  const [viewYear, setViewYear] = useState<number>(year);
-  const [viewMonth, setViewMonth] = useState<number>(month);
-
-  useEffect(() => { setViewYear(year); setViewMonth(month); }, [year, month]);
-
-  const startOfMonth = (y: number, m: number) => new Date(y, m - 1, 1);
-  const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
-
-  const genWeeks = (y: number, m: number) => {
-    const first = startOfMonth(y, m);
-    const startDay = first.getDay(); // 0 (Sun) - 6
-    const total = daysInMonth(y, m);
-    const weeks: (number | null)[][] = [];
-    let week: (number | null)[] = [];
-    // Fill initial blanks (Sun-start)
-    for (let i = 0; i < startDay; i++) week.push(null);
-    for (let d = 1; d <= total; d++) {
-      week.push(d);
-      if (week.length === 7) { weeks.push(week); week = []; }
-    }
-    if (week.length) {
-      while (week.length < 7) week.push(null);
-      weeks.push(week);
-    }
-    return weeks;
-  };
-
-  const isBefore = (y: number, m: number, d: number, iso: string) => {
-    const t = new Date(iso + 'T00:00:00');
-    return new Date(y, m - 1, d) < t;
-  };
-  const isAfter = (y: number, m: number, d: number, iso: string) => {
-    const t = new Date(iso + 'T23:59:59');
-    return new Date(y, m - 1, d) > t;
-  };
-
-  const weeks = genWeeks(viewYear, viewMonth);
-
-  const prev = () => {
-    let ny = viewYear; let nm = viewMonth - 1;
-    if (nm < 1) { nm = 12; ny -= 1; }
-    setViewYear(ny); setViewMonth(nm);
-    onMonthChange(ny, nm);
-  };
-  const next = () => {
-    let ny = viewYear; let nm = viewMonth + 1;
-    if (nm > 12) { nm = 1; ny += 1; }
-    setViewYear(ny); setViewMonth(nm);
-    onMonthChange(ny, nm);
-  };
-
-  const monthName = (m: number) => new Date(2000, m - 1, 1).toLocaleString(undefined, { month: 'long' });
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <button onClick={prev} className="p-1 rounded hover:bg-gray-100">◀</button>
-        <div className="text-sm font-medium">{monthName(viewMonth)} {viewYear}</div>
-        <button onClick={next} className="p-1 rounded hover:bg-gray-100">▶</button>
-      </div>
-      <div className="grid grid-cols-7 gap-1 text-xs text-center text-gray-500 mb-2">
-        {['S','M','T','W','T','F','S'].map((d) => (<div key={d}>{d}</div>))}
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {weeks.map((week, wi) => (
-          <React.Fragment key={wi}>
-            {week.map((d, di) => {
-              if (d === null) return <div key={di} className="py-2" />;
-              const disabled = isBefore(viewYear, viewMonth, d, minDate) || isAfter(viewYear, viewMonth, d, maxDate);
-              return (
-                <button
-                  key={di}
-                  onClick={() => !disabled && onPick(viewYear, viewMonth, d)}
-                  disabled={disabled}
-                  className={`py-2 rounded ${disabled ? 'text-gray-300' : 'hover:bg-indigo-50'} `}
-                >
-                  {d}
-                </button>
-              );
-            })}
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
-  );
-};
