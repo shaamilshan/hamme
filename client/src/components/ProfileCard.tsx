@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { motion, useMotionValue, useTransform, useAnimation, type PanInfo } from 'framer-motion'
+
 import { getImageUrl, validateImageFile, createFilePreview } from '../utils/imageUtils'
 import { apiService } from '../services/api'
 
@@ -17,16 +19,36 @@ interface ProfileCardProps {
   onRejectClick?: () => void
   userOverride?: User | null
   showEdit?: boolean
+  showActions?: boolean
   subtitle?: string
 }
 
-function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride = null, showEdit = true, subtitle }: ProfileCardProps) {
+function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride = null, showEdit = true, showActions = true }: ProfileCardProps) {
   const [user, setUser] = useState<User | null>(userOverride)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  /* Animation & Swipe Logic */
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+  const rotate = useTransform(x, [-200, 200], [-15, 15])
+  const controls = useAnimation()
+
+  // Visual feedback opacities
+  const likeOpacity = useTransform(x, [20, 150], [0, 1])
+  const rejectOpacity = useTransform(x, [-20, -150], [0, 1])
+  const friendOpacity = useTransform(y, [-20, -150], [0, 1])
+
+  // Reset card position if user changes
+  useEffect(() => {
+    x.set(0)
+    y.set(0)
+    controls.start({ x: 0, y: 0, opacity: 1, rotate: 0, transition: { duration: 0.3 } })
+  }, [user, controls, x, y])
+
 
   useEffect(() => {
     // If a user is provided, skip fetching
@@ -55,11 +77,11 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
     const birth = new Date(dateOfBirth)
     let age = today.getFullYear() - birth.getFullYear()
     const monthDiff = today.getMonth() - birth.getMonth()
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
       age--
     }
-    
+
     return age
   }
 
@@ -133,6 +155,33 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
     }
   }
 
+
+
+  const handleDragEnd = async (_: any, info: PanInfo) => {
+    const threshold = 100
+    const velocityThreshold = 500
+
+    // Swipe Right (Date)
+    if (info.offset.x > threshold || info.velocity.x > velocityThreshold) {
+      await controls.start({ x: 500, rotate: 20, opacity: 0, transition: { duration: 0.4 } })
+      handlePrimaryAction()
+    }
+    // Swipe Left (Reject)
+    else if (info.offset.x < -threshold || info.velocity.x < -velocityThreshold) {
+      await controls.start({ x: -500, rotate: -20, opacity: 0, transition: { duration: 0.4 } })
+      onRejectClick?.()
+    }
+    // Swipe Up (Friends)
+    else if (info.offset.y < -threshold || info.velocity.y < -velocityThreshold) {
+      await controls.start({ y: -500, opacity: 0, transition: { duration: 0.4 } })
+      onFriendsClick?.()
+    }
+    // Snap back
+    else {
+      controls.start({ x: 0, y: 0, rotate: 0, transition: { type: 'spring', stiffness: 300, damping: 20 } })
+    }
+  }
+
   const handlePrimaryAction = () => {
     if (isUnder18) {
       onFriendsClick?.()
@@ -142,15 +191,38 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
   }
 
   return (
-    <div className="w-full max-w-sm mx-auto">
-      <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
-        {/* Profile Image with Overlay */}
-        <div className="relative h-[520px]">
+    <div className="w-full max-w-sm mx-auto relative cursor-grab active:cursor-grabbing">
+      <motion.div
+        drag
+        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+        dragElastic={0.7}
+        onDragStart={() => { }}
+        onDragEnd={handleDragEnd}
+        animate={controls}
+        style={{ x, y, rotate }}
+        whileTap={{ scale: 1.05 }}
+        className="bg-white rounded-3xl shadow-xl overflow-hidden relative"
+      >
+        {/* Swipe Feedback Overlays */}
+        <motion.div style={{ opacity: likeOpacity }} className="absolute inset-0 bg-pink-500/30 z-30 pointer-events-none flex items-center justify-center">
+          <div className="border-4 border-pink-500 text-6xl px-6 py-4 rounded-full -rotate-12 bg-white/40 backdrop-blur-sm">💗</div>
+        </motion.div>
+        <motion.div style={{ opacity: rejectOpacity }} className="absolute inset-0 bg-red-500/30 z-30 pointer-events-none flex items-center justify-center">
+          <div className="border-4 border-red-500 text-6xl px-6 py-4 rounded-full rotate-12 bg-white/40 backdrop-blur-sm">❌</div>
+        </motion.div>
+        <motion.div style={{ opacity: friendOpacity }} className="absolute inset-0 bg-yellow-500/30 z-30 pointer-events-none flex items-center justify-center">
+          <div className="border-4 border-yellow-500 text-6xl px-6 py-4 rounded-full bg-white/40 backdrop-blur-sm">⭐️</div>
+        </motion.div>
+
+        {/* Profile Image with Overlay - Hold to reveal actions (Keeping legacy interactions as fallback) */}
+        <div
+          className="relative h-[520px] select-none"
+        >
           {profileImageUrl ? (
             <img
               src={profileImageUrl}
               alt={user.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover pointer-events-none"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
@@ -159,16 +231,16 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
               </span>
             </div>
           )}
-          
+
           {/* Dark gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"></div>
 
           {/* Edit Photo Icon Button */}
           {showEdit && (
             <button
               onClick={handleEditPhotoClick}
               disabled={uploading}
-              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full w-10 h-10 flex items-center justify-center shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full w-10 h-10 flex items-center justify-center shadow-md disabled:opacity-60 disabled:cursor-not-allowed z-20"
               title="Edit Photo"
               aria-label="Edit Photo"
             >
@@ -192,51 +264,52 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
               onChange={handleFileChange}
             />
           )}
-          
-          {/* Bottom-right action buttons overlay */}
-          <div className="absolute right-6 bottom-6 flex flex-col items-center space-y-4">
-            <button
-              onClick={onRejectClick}
-              className="w-14 h-14 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 transition-transform"
-              title="Not Interested"
-            >
-              ❌
-            </button>
-            <button
-              onClick={onFriendsClick}
-              className="w-14 h-14 bg-white text-yellow-500 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 transition-transform"
-              title="Just Friends"
-            >
-              ⭐️
-            </button>
-            <button
-              onClick={handlePrimaryAction}
-              className={`w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 transition-transform ${isUnder18 ? 'text-blue-600' : 'text-pink-600'}`}
-              title={isUnder18 ? 'Chat' : 'Accept Date'}
-            >
-              {isUnder18 ? '💬' : '💗'}
-            </button>
+
+          {/* Name & Age above bottom action buttons row */}
+          <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3">
+            <div className="w-full px-6 text-white text-left pointer-events-none">
+              <h2 className="text-2xl">
+                <span className="font-bold">{user.name}</span>
+                {derivedAge !== undefined && derivedAge !== null && (
+                  <span className="text-white/80">{`, ${derivedAge}`}</span>
+                )}
+              </h2>
+            </div>
+            {showActions && (
+              <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-3 flex items-center gap-4 pointer-events-auto">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRejectClick?.(); }}
+                  className="w-14 h-14 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 hover:bg-red-50 active:scale-95 transition-all duration-200"
+                  title="Not Interested"
+                >
+                  ❌
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onFriendsClick?.(); }}
+                  className="w-14 h-14 bg-white text-yellow-500 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 hover:bg-yellow-50 active:scale-95 transition-all duration-200"
+                  title="Just Friends"
+                >
+                  ⭐️
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handlePrimaryAction(); }}
+                  className={`w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 active:scale-95 transition-all duration-200 ${isUnder18 ? 'text-blue-600 hover:bg-blue-50' : 'text-pink-600 hover:bg-pink-50'}`}
+                  title={isUnder18 ? 'Chat' : 'Accept Date'}
+                >
+                  {isUnder18 ? '💬' : '💗'}
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Text overlay */}
-          <div className="absolute bottom-6 left-6 text-left text-white">
-            <h2 className="text-2xl font-bold mb-1">
-              {user.name}
-            </h2>
-            {derivedAge !== undefined && derivedAge !== null && (
-              <p className="text-white/80 text-sm">{derivedAge}</p>
-            )}
-            {subtitle && (
-              <p className="text-white/80 text-sm mt-1">{subtitle}</p>
-            )}
-          </div>
+          {/* Text overlay moved above buttons */}
         </div>
 
         {/* Removed bottom white section to match full-bleed card style */}
         {error && (
           <div className="p-4 text-center text-sm text-red-600">{error}</div>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }

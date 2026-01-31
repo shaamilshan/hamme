@@ -2,17 +2,13 @@ import { useEffect, useState } from 'react'
 import Header from '../components/Header'
 import ProfileCard from '../components/ProfileCard'
 import ShareActions from '../components/ShareActions'
-import InteractionFeed from '../components/InteractionFeed'
 import { apiService } from '../services/api'
-import { getImageUrl } from '../utils/imageUtils'
 import { useNavigate } from 'react-router-dom'
 
 function Dashboard() {
   const navigate = useNavigate()
   const [showNotification, setShowNotification] = useState<string | null>(null)
-  const [refreshFeed, setRefreshFeed] = useState(0)
   const [pending, setPending] = useState<any[]>([])
-  const [loadingPending, setLoadingPending] = useState(true)
 
   const handleDateClick = () => {
     setShowNotification('💚 Great choice! Looking for a date connection.')
@@ -29,23 +25,35 @@ function Dashboard() {
     setTimeout(() => setShowNotification(null), 3000)
   }
 
-  const handleProfileResponse = () => {
-    setRefreshFeed(prev => prev + 1)
+  const handleRequestAction = async (userId: string, choice: 'date' | 'friends' | 'reject') => {
+    try {
+      await apiService.submitChoice(userId, choice)
+      // Remove from pending list
+      setPending(prev => prev.filter(p => (p?.user?._id || p?._id) !== userId))
+
+      const messages: Record<string, string> = {
+        date: '💚 Great choice! You chose date.',
+        friends: '👥 Awesome! You chose friends.',
+        reject: '❌ No worries!'
+      }
+      setShowNotification(messages[choice])
+      setTimeout(() => setShowNotification(null), 3000)
+    } catch (error) {
+      console.error('Failed to submit choice:', error)
+    }
   }
+
 
   useEffect(() => {
     let intervalId: number | undefined
 
     const fetchPending = async () => {
       try {
-        setLoadingPending(true)
         const res = await apiService.getPendingProfiles()
         setPending(res.data?.profiles || res.data || [])
       } catch (e) {
         console.error('Failed to load pending requests', e)
         setPending([])
-      } finally {
-        setLoadingPending(false)
       }
     }
 
@@ -80,73 +88,63 @@ function Dashboard() {
 
       {/* Main Content */}
       <main className="w-full md:max-w-none md:px-0 px-4 pb-12 pt-6 space-y-6">
-        {/* Profile Card */}
+        {/* Stacked Cards Container - Requests stack over user's profile */}
         <div className="flex justify-center">
-          <ProfileCard
-            onDateClick={handleDateClick}
-            onFriendsClick={handleFriendsClick}
-            onRejectClick={handleRejectClick}
-          />
-        </div>
+          <div className="w-full max-w-sm relative" style={{ minHeight: '560px' }}>
+            {/* User's own profile card (base layer, no action icons) */}
+            <div className="absolute inset-0" style={{ zIndex: 1 }}>
+              <ProfileCard
+                onDateClick={handleDateClick}
+                onFriendsClick={handleFriendsClick}
+                onRejectClick={handleRejectClick}
+                showActions={false}
+              />
+            </div>
 
-        {/* Requests Peek */}
-        <div className="w-full flex justify-center">
-          <div className="w-full max-w-md">
-            <button
-              onClick={() => navigate('/inbox')}
-              className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-left"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-900">Requests</h3>
-                <span className="text-sm text-purple-600 font-medium">View all</span>
-              </div>
-
-              {/* Stacked cards */}
-              <div className="relative h-28">
-                {(pending.slice(0, 3)).map((p, idx) => {
-                  const topOffset = (2 - idx) * 12
-                  const scale = 1 - (2 - idx) * 0.06
-                  const z = 10 + idx
-                  const user = p?.user || p // handle both shapes gracefully
-                  const img = user?.profilePicture ? getImageUrl(user.profilePicture) : ''
-                  const name = user?.name || 'New request'
-                  return (
-                    <div
-                      key={user?._id || idx}
-                      className="absolute left-0 right-0 mx-auto rounded-2xl overflow-hidden shadow-md bg-gray-100"
-                      style={{ top: `${topOffset}px`, transform: `scale(${scale})`, zIndex: z, height: '88px' }}
-                    >
-                      <div className="flex h-full">
-                        <div className="w-28 h-full bg-gray-200 overflow-hidden">
-                          {img ? (
-                            <img src={img} alt={name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-xl">
-                              {name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 px-4 py-3 flex items-center justify-between">
-                          <div>
-                            <p className="text-gray-900 font-semibold leading-5">{name}</p>
-                            <p className="text-gray-500 text-sm">Sent you a request</p>
-                          </div>
-                          <span className="text-gray-400">›</span>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-
-                {(!loadingPending && pending.length === 0) && (
-                  <div className="absolute inset-0 rounded-2xl border border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-sm">
-                    No requests yet
-                  </div>
-                )}
-              </div>
-            </button>
+            {/* Pending request cards stacked on top */}
+            {pending.slice(0, 3).map((p, idx) => {
+              const reverseIdx = Math.min(pending.length, 3) - 1 - idx
+              const scale = 1 - reverseIdx * 0.04
+              const topOffset = reverseIdx * 16
+              const z = 10 + idx
+              const user = p?.user || p
+              return (
+                <div
+                  key={user?._id || idx}
+                  className="absolute left-0 right-0 mx-auto"
+                  style={{ top: `${topOffset}px`, transform: `scale(${scale})`, zIndex: z }}
+                >
+                  <ProfileCard
+                    userOverride={{
+                      id: user?._id,
+                      name: user?.name || 'New request',
+                      age: user?.age,
+                      profilePicture: user?.profilePicture,
+                      dateOfBirth: user?.dateOfBirth,
+                    }}
+                    showEdit={false}
+                    showActions={true}
+                    onDateClick={() => handleRequestAction(user?._id, 'date')}
+                    onFriendsClick={() => handleRequestAction(user?._id, 'friends')}
+                    onRejectClick={() => handleRequestAction(user?._id, 'reject')}
+                  />
+                </div>
+              )
+            })}
           </div>
         </div>
+
+        {/* View Requests Link (if there are more requests) */}
+        {pending.length > 0 && (
+          <div className="flex justify-center">
+            <button
+              onClick={() => navigate('/inbox')}
+              className="text-purple-600 font-medium text-sm hover:underline"
+            >
+              View all requests ({pending.length})
+            </button>
+          </div>
+        )}
 
         {/* Share Actions */}
         <div className="flex justify-center">

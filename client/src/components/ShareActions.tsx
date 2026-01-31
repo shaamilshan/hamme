@@ -11,7 +11,6 @@ interface ShareActionsProps {
 
 function ShareActions({ profileUrl }: ShareActionsProps) {
   const [copied, setCopied] = useState(false)
-  const [userId, setUserId] = useState<string | null>(null)
   const [generatedUrl, setGeneratedUrl] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -23,7 +22,6 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
         const response = await apiService.getProfile()
         const id = response.data.user._id
         setUser(response.data.user)
-        setUserId(id)
         const url = `${window.location.origin}/profile/${id}`
         setGeneratedUrl(url)
       } catch (error) {
@@ -150,7 +148,7 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     const pad = 28
     const footerX = cardX + pad
     const footerY = cardY + imgH + 16
-    const footerW = cardW - pad * 2
+  // const footerW = cardW - pad * 2 // not used currently
 
     // Name and age
     ctx.fillStyle = '#111827'
