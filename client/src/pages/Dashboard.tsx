@@ -97,7 +97,7 @@ function Dashboard() {
                 onDateClick={handleDateClick}
                 onFriendsClick={handleFriendsClick}
                 onRejectClick={handleRejectClick}
-                showActions={false}
+                draggable={false}
               />
             </div>
 
@@ -123,7 +123,6 @@ function Dashboard() {
                       dateOfBirth: user?.dateOfBirth,
                     }}
                     showEdit={false}
-                    showActions={true}
                     onDateClick={() => handleRequestAction(user?._id, 'date')}
                     onFriendsClick={() => handleRequestAction(user?._id, 'friends')}
                     onRejectClick={() => handleRequestAction(user?._id, 'reject')}
