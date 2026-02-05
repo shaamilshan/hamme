@@ -103,9 +103,13 @@ router.post('/upload-picture', authenticateToken, upload.single('profilePicture'
         {
           folder: 'hamme/profile-pictures',
           resource_type: 'image',
-          format: 'webp',
-          transformation: [{ width: 1080, height: 1080, crop: 'limit' }],
+          // Remove heavy transformations during upload - do them on-demand via URL
+          quality: 'auto:good',
+          fetch_format: 'auto',
           public_id: `profile-${userId}-${Date.now()}`,
+          // Enable eager async transformation instead of blocking upload
+          eager_async: true,
+          overwrite: true,
         },
         (error, result) => {
           if (error) return reject(error)
@@ -113,7 +117,7 @@ router.post('/upload-picture', authenticateToken, upload.single('profilePicture'
         }
       )
 
-  uploadStream.end(req.file!.buffer)
+      uploadStream.end(req.file!.buffer)
     })
 
     const fileUrl = uploadResult.secure_url

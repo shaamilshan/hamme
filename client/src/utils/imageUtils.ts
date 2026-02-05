@@ -29,19 +29,19 @@ export const validateImageFile = (file: File): { isValid: boolean; error?: strin
     return { isValid: false, error: 'Please select a valid image file' }
   }
   
-  // Check file size (5MB limit)
-  const maxSize = 5 * 1024 * 1024 // 5MB
+  // Check file size (3MB limit for faster uploads)
+  const maxSize = 3 * 1024 * 1024 // 3MB
   if (file.size > maxSize) {
-    return { isValid: false, error: 'Image size should be less than 5MB' }
+    return { isValid: false, error: 'Image size should be less than 3MB' }
   }
   
   // Check file extension
-  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'] // Remove .gif for faster processing
   const fileName = file.name.toLowerCase()
   const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext))
   
   if (!hasValidExtension) {
-    return { isValid: false, error: 'Only .jpg, .jpeg, .png, .gif, .webp files are allowed' }
+    return { isValid: false, error: 'Only .jpg, .jpeg, .png, .webp files are allowed' }
   }
   
   return { isValid: true }

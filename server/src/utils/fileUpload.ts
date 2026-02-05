@@ -18,11 +18,11 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
   }
 
   // Check file extension
-  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'] // Removed .gif for faster processing
   const fileExtension = path.extname(file.originalname).toLowerCase()
   
   if (!allowedExtensions.includes(fileExtension)) {
-    cb(new Error('Invalid file extension. Only .jpg, .jpeg, .png, .gif, .webp files are allowed!'))
+    cb(new Error('Invalid file extension. Only .jpg, .jpeg, .png, .webp files are allowed!'))
     return
   }
 
@@ -34,7 +34,7 @@ export const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 3 * 1024 * 1024, // Reduce to 3MB for faster uploads
     files: 1 // Only one file at a time
   }
 })
@@ -45,7 +45,7 @@ export const handleUploadError = (error: any, req: Request, res: Response, next:
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
-        message: 'File too large. Maximum size is 5MB.'
+        message: 'File too large. Maximum size is 3MB.'
       })
     }
     if (error.code === 'LIMIT_FILE_COUNT') {
