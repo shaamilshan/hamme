@@ -3,11 +3,8 @@ import path from 'path'
 import fs from 'fs'
 import { Request, Response, NextFunction } from 'express'
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../../public/uploads/profile-pictures')
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true })
-}
+// Note: No local directory creation for serverless/Vercel deployment
+// All uploads go directly to Cloudinary via memory storage
 
 // Configure multer storage to memory (for Cloudinary upload)
 const storage = multer.memoryStorage()
@@ -75,20 +72,29 @@ export const handleUploadError = (error: any, req: Request, res: Response, next:
   next(error)
 }
 
-// Utility function to delete old profile picture
+// Utility function to delete old profile picture (serverless-safe)
 export const deleteOldProfilePicture = (filename: string) => {
   if (!filename) return
   
   try {
     // Only attempt delete if it's a local file path in our uploads directory
-    if (!filename.startsWith('/uploads/')) return
+    // Skip deletion in serverless environments (Vercel) - no local filesystem
+    if (!filename.startsWith('/uploads/') || process.env.VERCEL) {
+      console.log('Skipping local file deletion in serverless environment or for cloud URLs')
+      return
+    }
+    
+    // For local development only - construct path relative to current working directory
+    const uploadDir = path.join(process.cwd(), 'public/uploads/profile-pictures')
     const filePath = path.join(uploadDir, path.basename(filename))
+    
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath)
       console.log(`Deleted old profile picture: ${filename}`)
     }
   } catch (error) {
     console.error('Error deleting old profile picture:', error)
+    // Don't throw - deletion failure shouldn't break the upload flow
   }
 }
 

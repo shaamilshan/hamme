@@ -36,14 +36,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from public directory with headers safe for canvas usage
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
-  setHeaders: (res) => {
-    // Allow images to be fetched cross-origin (for canvas, etc.)
-    res.setHeader('Access-Control-Allow-Origin', 'https://hamme.vercel.app');
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-  }
-}));
+// Only in non-serverless environments (skip on Vercel)
+if (!process.env.VERCEL) {
+  app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
+    setHeaders: (res) => {
+      // Allow images to be fetched cross-origin (for canvas, etc.)
+      res.setHeader('Access-Control-Allow-Origin', 'https://hamme.vercel.app');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }));
+} else {
+  console.log('Skipping static file serving in serverless environment - using Cloudinary');
+}
 
 // Routes
 app.get('/', (req, res) => {
