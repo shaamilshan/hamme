@@ -14,23 +14,33 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // CORS configuration
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN ? 
-    [process.env.CORS_ORIGIN,'https://hamme.vercel.app', 'http://localhost:5174'] : 
-    ['http://localhost:5173', 'http://localhost:5174'],
+const allowedOrigins = [
+  'https://hamme.vercel.app',
+  process.env.CORS_ORIGIN || '',
+  'http://localhost:5173',
+  'http://localhost:5174',
+].filter(Boolean);
+
+const corsOptions: cors.CorsOptions = {
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 
 // Middleware
 app.use(cors(corsOptions));
+// Ensure preflight (OPTIONS) requests are handled with CORS
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from public directory with headers safe for canvas usage
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), {
   setHeaders: (res) => {
-    res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || 'https://hamme.vercel.app');
+    // Allow images to be fetched cross-origin (for canvas, etc.)
+    res.setHeader('Access-Control-Allow-Origin', 'https://hamme.vercel.app');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   }
