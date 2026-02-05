@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useTransform, useAnimation, type PanInfo } from 'framer-motion'
 
-import { getImageUrl, validateImageFile, createFilePreview } from '../utils/imageUtils'
+import { getImageUrl, validateImageFile, createFilePreview, compressImage } from '../utils/imageUtils'
 import { apiService } from '../services/api'
 
 interface User {
@@ -140,8 +140,11 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
       const preview = await createFilePreview(file)
       setPreviewUrl(preview)
 
-      // Upload to server
-      const response = await apiService.uploadProfilePicture(file)
+      // Compress image before uploading for faster transfer
+      const compressedFile = await compressImage(file)
+
+      // Upload compressed file to server
+      const response = await apiService.uploadProfilePicture(compressedFile)
       const updatedUser: User = response.data.user
       setUser(updatedUser)
       setPreviewUrl(null)

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
 import { connectDatabase } from './config/database';
@@ -30,10 +31,11 @@ const corsOptions: cors.CorsOptions = {
 };
 
 // Middleware
+app.use(compression()); // Gzip compress all responses
 app.use(cors(corsOptions));
 // Remove explicit OPTIONS handler - CORS middleware already handles preflight
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' })); // Limit JSON payload size
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Serve static files from public directory with headers safe for canvas usage
 // Only in non-serverless environments (skip on Vercel)

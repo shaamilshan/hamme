@@ -19,6 +19,61 @@ export const getImageUrl = (imagePath: string): string => {
 }
 
 /**
+ * Compress an image file to reduce upload time
+ * @param file - The original file
+ * @param maxWidth - Maximum width (default 1080px)
+ * @param quality - JPEG quality 0-1 (default 0.8)
+ * @returns Promise that resolves to the compressed file
+ */
+export const compressImage = async (
+  file: File,
+  maxWidth = 1080,
+  quality = 0.8
+): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // Calculate new dimensions maintaining aspect ratio
+      let { width, height } = img
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width
+        width = maxWidth
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height)
+      
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Failed to compress image'))
+            return
+          }
+          // Create new file with same name
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          })
+          console.log(`Compressed: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB`)
+          resolve(compressedFile)
+        },
+        'image/jpeg',
+        quality
+      )
+    }
+    
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+/**
  * Validate file type for image uploads
  * @param file - The file to validate
  * @returns Object with isValid boolean and error message if invalid

@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
+import { compressImage } from '../utils/imageUtils';
 
-// --- Helper Functions (assuming these are in a utils file) ---
-// Mocking these for stand-alone functionality
+// --- Helper Functions ---
 const validateImageFile = (file: File): { isValid: boolean; error?: string } => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-  const maxSizeInMB = 5;
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  const maxSizeInMB = 10; // Allow larger originals, we'll compress
   if (!allowedTypes.includes(file.type)) {
-    return { isValid: false, error: 'Please select a valid image file (JPG, PNG, GIF).' };
+    return { isValid: false, error: 'Please select a valid image file (JPG, PNG, WebP).' };
   }
   if (file.size > maxSizeInMB * 1024 * 1024) {
     return { isValid: false, error: `File size cannot exceed ${maxSizeInMB}MB.` };
@@ -92,8 +92,11 @@ function SetupProfilePicture() {
     setError('');
 
     try {
-      // Upload the profile picture using the actual API
-      await apiService.uploadProfilePicture(selectedFile);
+      // Compress image before uploading for faster transfer
+      const compressedFile = await compressImage(selectedFile);
+      
+      // Upload the compressed profile picture
+      await apiService.uploadProfilePicture(compressedFile);
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Error uploading profile picture:', err);
