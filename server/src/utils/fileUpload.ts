@@ -1,5 +1,4 @@
 import multer from 'multer'
-import sharp from 'sharp'
 import path from 'path'
 import fs from 'fs'
 import { Request, Response, NextFunction } from 'express'
@@ -10,20 +9,8 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true })
 }
 
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir)
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename with timestamp and user ID
-    const userId = req.user?.id || 'anonymous'
-    const timestamp = Date.now()
-    // Always store as webp (processed after upload)
-    const filename = `profile-${userId}-${timestamp}.webp`
-    cb(null, filename)
-  }
-})
+// Configure multer storage to memory (for Cloudinary upload)
+const storage = multer.memoryStorage()
 
 // File filter function
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -93,6 +80,8 @@ export const deleteOldProfilePicture = (filename: string) => {
   if (!filename) return
   
   try {
+    // Only attempt delete if it's a local file path in our uploads directory
+    if (!filename.startsWith('/uploads/')) return
     const filePath = path.join(uploadDir, path.basename(filename))
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath)
@@ -103,23 +92,4 @@ export const deleteOldProfilePicture = (filename: string) => {
   }
 }
 
-// Middleware to optimize uploaded image to webp and resize
-export const optimizeUploadedProfile = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    if (!req.file) return next()
-    const filePath = path.join(uploadDir, req.file.filename)
-    // Reprocess to reasonable size (max 1080px) and quality
-    await sharp(filePath)
-      .rotate()
-      .resize({ width: 1080, height: 1080, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toFile(filePath + '.tmp')
-
-    fs.renameSync(filePath + '.tmp', filePath)
-    next()
-  } catch (error) {
-    console.error('Image optimization failed:', error)
-    // Continue without blocking upload
-    next()
-  }
-}
+// No local optimization step; images are uploaded to Cloudinary directly

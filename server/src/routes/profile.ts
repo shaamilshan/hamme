@@ -1,7 +1,8 @@
 import express, { Request, Response } from 'express'
 import { User } from '../models/User'
 import { authenticateToken } from '../middleware/auth'
-import { upload, handleUploadError, deleteOldProfilePicture, optimizeUploadedProfile } from '../utils/fileUpload'
+import { upload, handleUploadError, deleteOldProfilePicture } from '../utils/fileUpload'
+import { cloudinary } from '../utils/cloudinary'
 
 const router = express.Router()
 
@@ -85,7 +86,7 @@ router.patch('/dob', authenticateToken, async (req: Request, res: Response) => {
 })
 
 // Upload profile picture file
-router.post('/upload-picture', authenticateToken, upload.single('profilePicture'), optimizeUploadedProfile, async (req: Request, res: Response) => {
+router.post('/upload-picture', authenticateToken, upload.single('profilePicture'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -95,14 +96,33 @@ router.post('/upload-picture', authenticateToken, upload.single('profilePicture'
     }
 
     const userId = req.user._id
-    const filename = req.file.filename
-    const fileUrl = `/uploads/profile-pictures/${filename}`
 
-    // Get current user to delete old profile picture
+    // Upload to Cloudinary via stream using the file buffer
+    const uploadResult: any = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'hamme/profile-pictures',
+          resource_type: 'image',
+          format: 'webp',
+          transformation: [{ width: 1080, height: 1080, crop: 'limit' }],
+          public_id: `profile-${userId}-${Date.now()}`,
+        },
+        (error, result) => {
+          if (error) return reject(error)
+          resolve(result)
+        }
+      )
+
+  uploadStream.end(req.file!.buffer)
+    })
+
+    const fileUrl = uploadResult.secure_url
+
+    // Get current user to delete old local profile picture if any
     const currentUser = await User.findById(userId)
     const oldProfilePicture = currentUser?.profilePicture
 
-    // Update user with new profile picture URL
+    // Update user with new Cloudinary URL
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { profilePicture: fileUrl },
@@ -116,7 +136,7 @@ router.post('/upload-picture', authenticateToken, upload.single('profilePicture'
       })
     }
 
-    // Delete old profile picture if it exists and is different
+    // Delete old local file only (skip cloud URLs)
     if (oldProfilePicture && oldProfilePicture !== fileUrl) {
       deleteOldProfilePicture(oldProfilePicture)
     }
@@ -125,7 +145,7 @@ router.post('/upload-picture', authenticateToken, upload.single('profilePicture'
       success: true,
       message: 'Profile picture uploaded successfully',
       user: updatedUser,
-      fileUrl: fileUrl
+      fileUrl
     })
 
   } catch (error) {
