@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { apiService } from '../services/api';
-import { compressImage } from '../utils/imageUtils';
 
 // --- Helper Functions ---
 const validateImageFile = (file: File): { isValid: boolean; error?: string } => {
@@ -36,9 +36,9 @@ const ArrowLeftIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-    </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+  </svg>
 );
 
 
@@ -50,6 +50,7 @@ function SetupProfilePicture() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
 
   // --- LOGIC (Preserved from original component) ---
@@ -82,8 +83,6 @@ function SetupProfilePicture() {
 
   const handleContinue = async () => {
     if (!selectedFile) {
-      // In this new design, this button isn't active without a picture,
-      // but the logic is kept for robustness.
       setError('Please select a profile picture.');
       return;
     }
@@ -91,16 +90,37 @@ function SetupProfilePicture() {
     setIsLoading(true);
     setError('');
 
+    // Simulate upload progress
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 300);
+
     try {
-      // Compress image before uploading for faster transfer
-      const compressedFile = await compressImage(selectedFile);
-      
-      // Upload the compressed profile picture
-      await apiService.uploadProfilePicture(compressedFile);
-      navigate('/dashboard');
+      // Upload the profile picture
+      // The apiService.uploadProfilePicture method expects a File object
+      await apiService.uploadProfilePicture(selectedFile);
+
+      clearInterval(interval);
+      setUploadProgress(100);
+
+      // Short delay to show 100% before navigating
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 500);
+
     } catch (err: any) {
+      clearInterval(interval);
+      setUploadProgress(0);
       console.error('Error uploading profile picture:', err);
-      setError(err.response?.data?.message || 'Failed to upload profile picture.');
+      // More robust error handling
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to upload profile picture.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -111,22 +131,42 @@ function SetupProfilePicture() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans p-6">
-      <header className="flex-shrink-0 w-full max-w-md mx-auto">
-        <div className="relative flex items-center justify-between h-10">
-          <button onClick={() => navigate(-1)} className="text-gray-800 hover:text-black transition-colors">
+    <div className="min-h-screen bg-black flex flex-col font-sans p-6 text-white">
+      <motion.header
+        className="flex-shrink-0 w-full max-w-md mx-auto"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
+        <div className="relative flex items-center justify-between h-14">
+          <button onClick={() => navigate(-1)} className="text-white/70 hover:text-white transition-colors">
             <ArrowLeftIcon className="w-6 h-6" />
           </button>
-          <button onClick={handleSkip} className="text-gray-600 hover:text-black font-medium transition-colors">
-            Skip
-          </button>
+          <div className="flex-1" />
+          {/* step indicator */}
+          <div className="w-24 h-1 rounded-full bg-white/20">
+            <div className="h-1 w-full rounded-full" style={{ backgroundColor: '#906EF6' }} />
+          </div>
         </div>
-      </header>
+      </motion.header>
 
       <main className="flex-grow flex flex-col items-center justify-center w-full max-w-md mx-auto text-center">
-        <h1 className="text-3xl font-bold text-black mb-12">Upload a Profile</h1>
-        
-        <div className="relative mb-6">
+        <motion.h1
+          className="text-3xl font-bold mb-12"
+          style={{ color: '#906EF6' }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          Upload a Profile
+        </motion.h1>
+
+        <motion.div
+          className="relative mb-6 group"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.3, type: 'spring', stiffness: 200, damping: 20 }}
+        >
           <input
             ref={fileInputRef}
             type="file"
@@ -134,49 +174,99 @@ function SetupProfilePicture() {
             onChange={handleImageSelect}
             className="hidden"
           />
-          <div 
+          <div
             onClick={handleUploadClick}
-            className="w-48 h-48 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300"
+            className="w-48 h-48 rounded-full flex items-center justify-center cursor-pointer overflow-hidden border-2 relative z-10"
+            style={{
+              backgroundColor: 'rgba(144, 110, 246, 0.1)',
+              borderColor: selectedImage ? '#906EF6' : 'rgba(144, 110, 246, 0.3)'
+            }}
           >
             {selectedImage ? (
-                <img src={selectedImage} alt="Profile Preview" className="w-full h-full object-cover"/>
+              <img src={selectedImage} alt="Profile Preview" className="w-full h-full object-cover" />
             ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-400 text-6xl font-thin">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-20 h-20">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                        </svg>
-                    </span>
-                </div>
+              <div className="w-full h-full flex items-center justify-center text-white/30 hover:text-white/50 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-20 h-20">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </div>
             )}
           </div>
-          <button
-              onClick={handleUploadClick}
-              className="absolute bottom-0 right-0 w-10 h-10 bg-black text-white rounded-full flex items-center justify-center border-2 border-white shadow-md hover:bg-gray-800 transition-colors"
-          >
-              <PlusIcon className="w-6 h-6"/>
-          </button>
-        </div>
 
-        {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+          {/* Pulsing ring behind the avatar */}
+          <div className="absolute inset-0 rounded-full animate-pulse z-0" style={{ boxShadow: '0 0 30px rgba(144, 110, 246, 0.2)' }}></div>
+
+          <motion.button
+            onClick={handleUploadClick}
+            className="absolute bottom-2 right-2 w-12 h-12 text-white rounded-full flex items-center justify-center shadow-lg transition-colors z-20"
+            style={{ backgroundColor: '#906EF6', border: '3px solid black' }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <PlusIcon className="w-6 h-6" />
+          </motion.button>
+        </motion.div>
+
+        {error &&
+          <motion.p
+            className="text-red-400 text-sm mt-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {error}
+          </motion.p>
+        }
+
+        <motion.button
+          onClick={handleSkip}
+          className="mt-8 text-sm font-medium hover:underline transition-all"
+          style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+          whileHover={{ color: '#fff' }}
+        >
+          Skip for now
+        </motion.button>
 
       </main>
 
-      <footer className="flex-shrink-0 w-full max-w-md mx-auto mt-auto pt-6">
-        <button
+      <motion.footer
+        className="flex-shrink-0 w-full max-w-md mx-auto mt-auto pt-6"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.6, ease: 'easeOut' }}
+      >
+        <motion.button
           onClick={handleContinue}
           disabled={!selectedFile || isLoading}
-          className="w-full bg-black text-white font-bold py-4 px-8 rounded-full text-lg flex items-center justify-center space-x-2 hover:bg-gray-800 transition-colors duration-300 shadow-lg shadow-black/20 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="w-full text-white font-bold py-4 px-8 rounded-full text-lg flex items-center justify-center space-x-2 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            backgroundColor: !selectedFile ? '#333' : '#906EF6',
+            boxShadow: !selectedFile ? 'none' : '0 10px 30px rgba(144, 110, 246, 0.3)'
+          }}
+          whileHover={selectedFile ? { scale: 1.03, boxShadow: '0 0 25px rgba(144, 110, 246, 0.5)' } : {}}
+          whileTap={selectedFile ? { scale: 0.97 } : {}}
         >
           <span>{isLoading ? 'Uploading...' : 'Done'}</span>
           <span>🚀</span>
-        </button>
+        </motion.button>
 
-        <p className="text-xs text-gray-400 text-center mt-4">
+        {/* Upload Progress Bar */}
+        {(isLoading || uploadProgress > 0) && (
+          <div className="w-full mt-4 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: '#906EF6' }}
+              initial={{ width: 0 }}
+              animate={{ width: `${uploadProgress}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+        )}
+
+        <p className="text-xs text-center mt-4" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
           By continuing, you agree to our Terms of Use and have
           read and agreed to our Privacy Policy
         </p>
-      </footer>
+      </motion.footer>
     </div>
   );
 }
