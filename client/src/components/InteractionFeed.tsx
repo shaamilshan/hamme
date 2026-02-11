@@ -4,6 +4,8 @@ import { apiService } from '../services/api'
 import { getImageUrl } from '../utils/imageUtils'
 import ProfileCard from './ProfileCard'
 import Loader from './ui/Loader'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faInstagram } from '@fortawesome/free-brands-svg-icons'
 
 type FeedView = 'requests' | 'matches'
 
@@ -27,6 +29,7 @@ interface Match {
     name: string
     age?: number
     profilePicture?: string
+    instagramId?: string
   }
   matchType: 'date' | 'friends'
   createdAt: string
@@ -134,7 +137,12 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ delay: idx * 0.1 }}
-                  className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:border-[#906EF6]/50 transition-colors"
+                  className={`bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:border-[#906EF6]/50 transition-colors ${match.user.instagramId ? 'cursor-pointer' : ''}`}
+                  onClick={() => {
+                    if (match.user.instagramId) {
+                      window.open(`https://instagram.com/${match.user.instagramId}`, '_blank')
+                    }
+                  }}
                 >
                   <div className="flex items-center space-x-4">
                     <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-[#906EF6]/30">
@@ -156,7 +164,13 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
                       <p className="text-sm text-white font-semibold">
                         You matched with <span className="font-bold" style={{ color: '#906EF6' }}>{match.user.name}</span>
                       </p>
-                      <p className="text-xs text-white/50">{hoursLeft(match.createdAt)} Hours left</p>
+                      {match.user.instagramId && (
+                        <p className="text-xs font-medium flex items-center gap-1 mt-0.5" style={{ color: '#906EF6' }}>
+                          <FontAwesomeIcon icon={faInstagram} className="w-3 h-3" />
+                          @{match.user.instagramId}
+                        </p>
+                      )}
+                      <p className="text-xs text-white/50 mt-0.5">{hoursLeft(match.createdAt)} Hours left</p>
                     </div>
                   </div>
                 </motion.div>
