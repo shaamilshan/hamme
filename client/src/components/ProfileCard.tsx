@@ -3,6 +3,8 @@ import { motion, useMotionValue, useTransform, useAnimation, type PanInfo } from
 
 import { getImageUrl, validateImageFile, createFilePreview, compressImage } from '../utils/imageUtils'
 import { apiService } from '../services/api'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faInstagram } from '@fortawesome/free-brands-svg-icons'
 
 interface User {
   id?: string
@@ -11,6 +13,7 @@ interface User {
   dateOfBirth?: string
   profilePicture?: string
   age?: number
+  instagramId?: string
 }
 
 interface ProfileCardProps {
@@ -313,6 +316,12 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
                   <span className="text-white/80">{`, ${derivedAge}`}</span>
                 )}
               </h2>
+              {user.instagramId && (
+                <p className="text-sm mt-0.5 font-medium flex items-center gap-1" style={{ color: '#906EF6' }}>
+                  <FontAwesomeIcon icon={faInstagram} className="w-3.5 h-3.5" />
+                  @{user.instagramId}
+                </p>
+              )}
             </div>
             <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-3 flex items-center gap-4 pointer-events-auto">
               <button

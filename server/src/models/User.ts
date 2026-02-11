@@ -7,6 +7,7 @@ export interface IUser extends Document {
   dateOfBirth?: Date;
   profilePicture?: string;
   age?: number;
+  instagramId?: string;
   bio?: string;
   location?: {
     city: string;
@@ -63,6 +64,11 @@ const UserSchema: Schema = new Schema({
     type: Number,
     min: 13,
     max: 100
+  },
+  instagramId: {
+    type: String,
+    trim: true,
+    maxlength: 50
   },
   bio: {
     type: String,

@@ -11,9 +11,9 @@ router.get('/public/:userId', optionalAuth, async (req: Request, res: Response) 
   try {
     const { userId } = req.params
     const currentUserId = req.user?._id
-    
+
     const user = await User.findById(userId).select('-password -email')
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -41,12 +41,12 @@ router.get('/public/:userId', optionalAuth, async (req: Request, res: Response) 
         viewerId: currentUserId,
         viewedUserId: userId
       })
-      
+
       if (profileView) {
         // Check if vote is still valid (within 24 hours)
         const voteAge = Date.now() - profileView.createdAt.getTime()
         const twentyFourHours = 24 * 60 * 60 * 1000
-        
+
         if (voteAge < twentyFourHours) {
           existingVote = {
             choice: profileView.choice,
@@ -64,6 +64,7 @@ router.get('/public/:userId', optionalAuth, async (req: Request, res: Response) 
         name: user.name,
         age: computedAge,
         profilePicture: user.profilePicture,
+        instagramId: user.instagramId,
         bio: user.bio
       },
       existingVote
@@ -151,9 +152,9 @@ router.post('/choice', authenticateToken, async (req: Request, res: Response) =>
             targetUserId: targetUserId,
             matchType: choice
           })
-          
+
           await newMatch.save()
-          
+
           matchResult = {
             matched: true,
             matchType: choice,
@@ -195,8 +196,8 @@ router.get('/pending', authenticateToken, async (req: Request, res: Response) =>
     }).select('viewedUserId')
 
     const respondedIds = respondedToUsers.map(r => r.viewedUserId.toString())
-    
-    const pendingProfiles = pendingViews.filter(view => 
+
+    const pendingProfiles = pendingViews.filter(view =>
       !respondedIds.includes(view.viewerId._id.toString())
     )
 
@@ -249,8 +250,8 @@ router.get('/matches', authenticateToken, async (req: Request, res: Response) =>
     }).populate('user1Id user2Id', '-password -email')
 
     const formattedMatches = matches.map(match => {
-      const otherUser = match.user1Id._id.toString() === userId.toString() 
-        ? match.user2Id 
+      const otherUser = match.user1Id._id.toString() === userId.toString()
+        ? match.user2Id
         : match.user1Id
 
       return {

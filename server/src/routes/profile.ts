@@ -10,7 +10,7 @@ const router = express.Router()
 router.patch('/dob', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { dateOfBirth } = req.body
-    
+
     if (!dateOfBirth) {
       return res.status(400).json({
         success: false,
@@ -31,7 +31,7 @@ router.patch('/dob', authenticateToken, async (req: Request, res: Response) => {
     const today = new Date()
     let age = today.getFullYear() - dobDate.getFullYear()
     const monthDiff = today.getMonth() - dobDate.getMonth()
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate())) {
       age--
     }
@@ -56,7 +56,7 @@ router.patch('/dob', authenticateToken, async (req: Request, res: Response) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { 
+      {
         dateOfBirth: dobDate,
         age: age
       },
@@ -78,6 +78,120 @@ router.patch('/dob', authenticateToken, async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error updating date of birth:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    })
+  }
+})
+
+// General profile update (name, instagramId, bio)
+router.patch('/update', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { name, instagramId, bio } = req.body
+    const userId = req.user._id
+
+    const updateFields: any = {}
+
+    if (name !== undefined) {
+      const trimmedName = String(name).trim()
+      if (trimmedName.length < 2 || trimmedName.length > 50) {
+        return res.status(400).json({
+          success: false,
+          message: 'Name must be between 2 and 50 characters'
+        })
+      }
+      updateFields.name = trimmedName
+    }
+
+    if (instagramId !== undefined) {
+      updateFields.instagramId = String(instagramId).replace(/^@/, '').trim()
+    }
+
+    if (bio !== undefined) {
+      if (String(bio).length > 500) {
+        return res.status(400).json({
+          success: false,
+          message: 'Bio must be under 500 characters'
+        })
+      }
+      updateFields.bio = String(bio).trim()
+    }
+
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No fields to update'
+      })
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateFields,
+      { new: true, runValidators: true }
+    ).select('-password')
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser
+    })
+
+  } catch (error) {
+    console.error('Error updating profile:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    })
+  }
+})
+
+// Update user's Instagram ID
+router.patch('/instagram', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { instagramId } = req.body
+
+    // Allow empty string to clear the field
+    if (instagramId === undefined || instagramId === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Instagram ID is required'
+      })
+    }
+
+    // Strip @ prefix if user included it
+    const cleanId = String(instagramId).replace(/^@/, '').trim()
+
+    const userId = req.user._id
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { instagramId: cleanId },
+      { new: true, runValidators: true }
+    ).select('-password')
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+
+    res.json({
+      success: true,
+      message: 'Instagram ID updated successfully',
+      user: updatedUser
+    })
+
+  } catch (error) {
+    console.error('Error updating Instagram ID:', error)
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -165,7 +279,7 @@ router.post('/upload-picture', authenticateToken, upload.single('profilePicture'
 router.patch('/profile-picture', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { profilePicture } = req.body
-    
+
     if (!profilePicture) {
       return res.status(400).json({
         success: false,

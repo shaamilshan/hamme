@@ -14,6 +14,7 @@ interface PendingProfile {
     age?: number
     profilePicture?: string
     dateOfBirth?: string
+    instagramId?: string
   }
   choice: 'date' | 'friends'
   viewedAt: string
@@ -204,6 +205,7 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
                         age: profile.user.age,
                         profilePicture: profile.user.profilePicture,
                         dateOfBirth: profile.user.dateOfBirth,
+                        instagramId: profile.user.instagramId,
                       }}
                       showEdit={false}
                       subtitle="Sent you a request"

@@ -7,10 +7,12 @@ const Onboarding = lazy(() => import('./pages/Onboarding'))
 const Login = lazy(() => import('./pages/Login'))
 const Signup = lazy(() => import('./pages/Signup'))
 const SetupDOB = lazy(() => import('./pages/SetupDOB'))
+const SetupInstagram = lazy(() => import('./pages/SetupInstagram'))
 const SetupProfilePicture = lazy(() => import('./pages/SetupProfilePicture'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Inbox = lazy(() => import('./pages/Inbox'))
 const PublicProfile = lazy(() => import('./pages/PublicProfile'))
+const EditProfile = lazy(() => import('./pages/EditProfile'))
 
 // Simple loading fallback
 const PageLoader = () => (
@@ -28,10 +30,12 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/setup-dob" element={<SetupDOB />} />
+          <Route path="/setup-instagram" element={<SetupInstagram />} />
           <Route path="/setup-profile-picture" element={<SetupProfilePicture />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/inbox" element={<Inbox />} />
           <Route path="/profile/:userId" element={<PublicProfile />} />
+          <Route path="/edit-profile" element={<EditProfile />} />
         </Routes>
       </Suspense>
     </Router>

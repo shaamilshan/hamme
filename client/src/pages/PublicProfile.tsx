@@ -10,6 +10,7 @@ interface User {
   name: string
   age?: number
   profilePicture?: string
+  instagramId?: string
   bio?: string
 }
 
@@ -31,23 +32,23 @@ function PublicProfile() {
   const [existingVote, setExistingVote] = useState<ExistingVote | null>(null)
 
   const fetchProfile = async () => {
-      if (!userId) {
-        setError('Invalid profile link')
-        setLoading(false)
-        return
-      }
-
-      try {
-        const response = await apiService.getPublicProfile(userId)
-        setUser(response.data.user)
-        setExistingVote(response.data.existingVote || null)
-      } catch (error: any) {
-        console.error('Failed to fetch profile:', error)
-        setError(error.response?.data?.message || 'Profile not found')
-      } finally {
-        setLoading(false)
-      }
+    if (!userId) {
+      setError('Invalid profile link')
+      setLoading(false)
+      return
     }
+
+    try {
+      const response = await apiService.getPublicProfile(userId)
+      setUser(response.data.user)
+      setExistingVote(response.data.existingVote || null)
+    } catch (error: any) {
+      console.error('Failed to fetch profile:', error)
+      setError(error.response?.data?.message || 'Profile not found')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const isVoteExpired = () => {
     if (!existingVote) return true
@@ -59,12 +60,12 @@ function PublicProfile() {
     const expiresAt = new Date(existingVote.expiresAt).getTime()
     const now = Date.now()
     const remaining = expiresAt - now
-    
+
     if (remaining <= 0) return 'Expired'
-    
+
     const hours = Math.floor(remaining / (1000 * 60 * 60))
     const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`
     }
@@ -78,13 +79,13 @@ function PublicProfile() {
   // Set up timer to check vote expiration
   useEffect(() => {
     if (!existingVote) return
-    
+
     const checkExpiration = () => {
       if (isVoteExpired()) {
         setExistingVote(null)
       }
     }
-    
+
     const interval = setInterval(checkExpiration, 60000) // Check every minute
     return () => clearInterval(interval)
   }, [existingVote])
@@ -92,10 +93,10 @@ function PublicProfile() {
   const guardedChoice = async (choice: 'date' | 'friends' | 'reject') => {
     const token = localStorage.getItem('token')
     if (!token) {
-      navigate('/signup', { 
-        state: { 
+      navigate('/signup', {
+        state: {
           returnTo: `/profile/${userId}`,
-          message: 'Sign up to interact with this profile!' 
+          message: 'Sign up to interact with this profile!'
         }
       })
       return
@@ -107,11 +108,11 @@ function PublicProfile() {
     try {
       const response = await apiService.submitChoice(userId, choice)
       setHasSubmitted(true)
-      
+
       if (response.data.match) {
         setMatchResult(response.data.match)
       }
-      
+
     } catch (error: any) {
       console.error('Failed to submit choice:', error)
       setError(error.response?.data?.message || 'Failed to submit choice')
@@ -244,6 +245,7 @@ function PublicProfile() {
           name: user.name,
           age: user.age,
           profilePicture: user.profilePicture,
+          instagramId: user.instagramId,
         }}
         showEdit={false}
         onDateClick={() => !submitting && guardedChoice('date')}

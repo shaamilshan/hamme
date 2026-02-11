@@ -39,26 +39,30 @@ api.interceptors.response.use(
 export const apiService = {
   // Health check
   health: () => api.get('/api/health'),
-  
+
   // User endpoints (to be implemented)
   getUsers: () => api.get('/api/users'),
   getUser: (id: string) => api.get(`/api/users/${id}`),
   createUser: (userData: any) => api.post('/api/users', userData),
   updateUser: (id: string, userData: any) => api.put(`/api/users/${id}`, userData),
   deleteUser: (id: string) => api.delete(`/api/users/${id}`),
-  
+
   // Auth endpoints (to be implemented)
   login: (credentials: { email: string; password: string }) =>
     api.post('/api/auth/login', credentials),
   register: (userData: { email: string; password: string; name: string }) =>
     api.post('/api/auth/register', userData),
   logout: () => api.post('/api/auth/logout'),
-  
+
   // Profile endpoints
   updateDateOfBirth: (dateOfBirth: string) =>
     api.patch('/api/profile/dob', { dateOfBirth }),
+  updateProfile: (data: { name?: string; instagramId?: string; bio?: string }) =>
+    api.patch('/api/profile/update', data),
   updateProfilePicture: (profilePicture: string) =>
     api.patch('/api/profile/profile-picture', { profilePicture }),
+  updateInstagramId: (instagramId: string) =>
+    api.patch('/api/profile/instagram', { instagramId }),
   uploadProfilePicture: (file: File) => {
     const formData = new FormData()
     formData.append('profilePicture', file)
@@ -70,7 +74,7 @@ export const apiService = {
   },
   getProfile: () =>
     api.get('/api/profile/profile'),
-  
+
   // Matching endpoints
   getPublicProfile: (userId: string) =>
     api.get(`/api/matching/public/${userId}`),

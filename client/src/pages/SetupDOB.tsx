@@ -97,7 +97,7 @@ function SetupDOB() {
     try {
       await apiService.updateDateOfBirth(dateOfBirth);
       setShowConfirm(false);
-      navigate('/setup-profile-picture');
+      navigate('/setup-instagram');
     } catch (err: any) {
       console.error('Error updating date of birth:', err);
       setError(err.response?.data?.message || 'Failed to save date of birth. Please try again.');
