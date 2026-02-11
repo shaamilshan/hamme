@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { apiService } from '../services/api'
 import { getImageUrl } from '../utils/imageUtils'
 import ProfileCard from './ProfileCard'
@@ -53,10 +54,10 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
         apiService.getPendingProfiles(),
         apiService.getMatches()
       ])
-      
+
       console.log('Pending profiles:', pendingResponse.data.profiles)
       console.log('Matches:', matchesResponse.data.matches)
-      
+
       setPendingProfiles(pendingResponse.data.profiles)
       setMatches(matchesResponse.data.matches)
     } catch (error) {
@@ -70,19 +71,19 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
     setSubmitting(userId)
     try {
       const response = await apiService.submitChoice(userId, choice)
-      
+
       // Remove from pending list (diminish)
       setPendingProfiles(prev => prev.filter(p => p.user._id !== userId))
-      
+
       // Refresh matches in case there's a new match
       const matchesResponse = await apiService.getMatches()
       setMatches(matchesResponse.data.matches)
-      
+
       // Notify on mutual match
       if (response.data.match?.matched) {
         onMatched?.(response.data.match)
       }
-      
+
       onProfileResponse?.()
     } catch (error) {
       console.error('Failed to submit choice:', error)
@@ -114,106 +115,139 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
     <div className="space-y-6">
       {/* Matches Section */}
       {view === 'matches' && matches.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">Matched!</h3>
-            <span className="text-xs text-gray-500">Matches disappear in 24 hours</span>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-white">Matched!</h3>
+            <span className="text-xs text-white/50">Matches disappear in 24 hours</span>
           </div>
           <div className="space-y-3">
-            {matches.map((match) => (
-              <div key={match.matchId} className="bg-white rounded-lg shadow-sm p-4 border border-green-200">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full overflow-hidden">
-                    {match.user.profilePicture ? (
-                      <img
-                        src={getImageUrl(match.user.profilePicture)}
-                        alt={match.user.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                        <span className="text-white text-sm font-bold">
-                          {match.user.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
+            <AnimatePresence>
+              {matches.map((match, idx) => (
+                <motion.div
+                  key={match.matchId}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:border-[#906EF6]/50 transition-colors"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-[#906EF6]/30">
+                      {match.user.profilePicture ? (
+                        <img
+                          src={getImageUrl(match.user.profilePicture)}
+                          alt={match.user.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                          <span className="text-white text-lg font-bold">
+                            {match.user.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm text-white font-semibold">
+                        You matched with <span className="font-bold" style={{ color: '#906EF6' }}>{match.user.name}</span>
+                      </p>
+                      <p className="text-xs text-white/50">{hoursLeft(match.createdAt)} Hours left</p>
+                    </div>
                   </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm text-gray-900 font-semibold">
-                      You matched with <span className="text-purple-700 font-bold">{match.user.name}</span>
-                    </p>
-                    <p className="text-xs text-gray-500">{hoursLeft(match.createdAt)} Hours left</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Pending Requests - Stacked pile */}
       {view === 'requests' && pendingProfiles.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            Hamme’s
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+            Hamme's
           </h3>
 
           {/* Stack container sized to one card height; cards overlap via absolute positioning */}
           <div className="relative" style={{ height: '560px' }}>
-            {stacked.map((profile, idx) => {
-              // Top card should be at the front (highest z), lower cards peek underneath
-              const reverseIdx = stacked.length - 1 - idx
-              const scale = 1 - reverseIdx * 0.04
-              const topOffset = reverseIdx * 16 // px
-              const z = 10 + idx
-              const isTop = reverseIdx === 0
+            <AnimatePresence>
+              {stacked.map((profile, idx) => {
+                // Top card should be at the front (highest z), lower cards peek underneath
+                const reverseIdx = stacked.length - 1 - idx
+                const scale = 1 - reverseIdx * 0.04
+                const topOffset = reverseIdx * 16 // px
+                const z = 10 + idx
+                const isTop = reverseIdx === 0
 
-              return (
-                <div
-                  key={profile.user._id}
-                  className="absolute left-0 right-0 mx-auto"
-                  style={{ top: `${topOffset}px`, transform: `scale(${scale})`, zIndex: z }}
-                >
-                  <ProfileCard
-                    userOverride={{
-                      id: profile.user._id,
-                      name: profile.user.name,
-                      age: profile.user.age,
-                      profilePicture: profile.user.profilePicture,
-                      dateOfBirth: profile.user.dateOfBirth,
-                    }}
-                    showEdit={false}
-                    subtitle="Sent you a request"
-                    onDateClick={() => isTop && submitting !== profile.user._id && handleChoice(profile.user._id, 'date')}
-                    onFriendsClick={() => isTop && submitting !== profile.user._id && handleChoice(profile.user._id, 'friends')}
-                    onRejectClick={() => isTop && submitting !== profile.user._id && handleChoice(profile.user._id, 'reject')}
-                  />
-                </div>
-              )
-            })}
+                return (
+                  <motion.div
+                    key={profile.user._id}
+                    className="absolute left-0 right-0 mx-auto"
+                    style={{ zIndex: z }}
+                    initial={{ y: -50, opacity: 0, scale: scale }}
+                    animate={{ y: topOffset, opacity: 1, scale: scale }}
+                    exit={{ x: 200, opacity: 0, rotate: 10 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 20, delay: idx * 0.1 }}
+                  >
+                    <ProfileCard
+                      userOverride={{
+                        id: profile.user._id,
+                        name: profile.user.name,
+                        age: profile.user.age,
+                        profilePicture: profile.user.profilePicture,
+                        dateOfBirth: profile.user.dateOfBirth,
+                      }}
+                      showEdit={false}
+                      subtitle="Sent you a request"
+                      onDateClick={() => isTop && submitting !== profile.user._id && handleChoice(profile.user._id, 'date')}
+                      onFriendsClick={() => isTop && submitting !== profile.user._id && handleChoice(profile.user._id, 'friends')}
+                      onRejectClick={() => isTop && submitting !== profile.user._id && handleChoice(profile.user._id, 'reject')}
+                    />
+                  </motion.div>
+                )
+              })}
+            </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Empty State */}
       {view === 'requests' && pendingProfiles.length === 0 && (
-        <div className="text-center py-8">
-          <div className="text-4xl mb-4">👋</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No requests yet</h3>
-          <p className="text-gray-600 text-sm">
+        <motion.div
+          className="text-center py-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="text-6xl mb-4">👋</div>
+          <h3 className="text-xl font-bold text-white mb-2">No requests yet</h3>
+          <p className="text-white/60 text-sm">
             Share your profile to start getting views!
           </p>
-        </div>
+        </motion.div>
       )}
 
       {view === 'matches' && matches.length === 0 && (
-        <div className="text-center py-8">
-          <div className="text-4xl mb-4">⏳</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No matches yet</h3>
-          <p className="text-gray-600 text-sm">
+        <motion.div
+          className="text-center py-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="text-6xl mb-4">⏳</div>
+          <h3 className="text-xl font-bold text-white mb-2">No matches yet</h3>
+          <p className="text-white/60 text-sm">
             Mutually select an option to get matched. Matches last 24 hours.
           </p>
-        </div>
+        </motion.div>
       )}
     </div>
   )

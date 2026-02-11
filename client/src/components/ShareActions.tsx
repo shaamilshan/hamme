@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { apiService } from '../services/api'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faInstagram } from '@fortawesome/free-brands-svg-icons'
@@ -60,28 +61,28 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     canvas.width = 1080
     canvas.height = 1920
 
-    // Background to match onboarding (bg-violet-600)
-    ctx.fillStyle = '#7c3aed'
+    // Background to match dark theme (black)
+    ctx.fillStyle = '#000000'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     // Add Hamme logo at the top center
     try {
       const brand = new Image()
       brand.src = logo
-      await new Promise<void>((resolve) => { brand.onload = () => resolve() ; brand.onerror = () => resolve() })
+      await new Promise<void>((resolve) => { brand.onload = () => resolve(); brand.onerror = () => resolve() })
       const brandMaxW = 520
       const brandW = Math.min(brand.width || brandMaxW, brandMaxW)
       const scale = brandW / (brand.width || brandMaxW)
       const brandH = (brand.height || brandMaxW) * scale
       const bx = (canvas.width - brandW) / 2
       const by = 80
-      // subtle shadow to pop on violet
+      // subtle shadow to pop on black
       ctx.save()
-      ctx.shadowColor = 'rgba(0,0,0,0.25)'
-      ctx.shadowBlur = 16
+      ctx.shadowColor = 'rgba(144, 110, 246, 0.5)' // Primary glow
+      ctx.shadowBlur = 20
       ctx.drawImage(brand, bx, by, brandW, brandH)
       ctx.restore()
-    } catch {}
+    } catch { }
 
     // Card container
     const cardW = 880
@@ -90,14 +91,19 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     const cardY = 200
 
     // Card shadow
-    ctx.shadowColor = 'rgba(0,0,0,0.35)'
-    ctx.shadowBlur = 30
+    ctx.shadowColor = 'rgba(144, 110, 246, 0.15)'
+    ctx.shadowBlur = 40
     ctx.shadowOffsetY = 20
 
-    // Card background
-    ctx.fillStyle = '#ffffff'
+    // Card background (slightly lighter black/gray for card)
+    ctx.fillStyle = '#111111'
     drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 36)
     ctx.fill()
+
+    // Border for card
+    ctx.strokeStyle = '#333333'
+    ctx.lineWidth = 2
+    ctx.stroke()
 
     // Reset shadow for inner content
     ctx.shadowColor = 'transparent'
@@ -117,7 +123,7 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     let imgLoaded = false
     if (imgUrl) {
       img.src = imgUrl
-      await new Promise<void>((resolve) => { img.onload = () => { imgLoaded = true; resolve() } ; img.onerror = () => resolve() })
+      await new Promise<void>((resolve) => { img.onload = () => { imgLoaded = true; resolve() }; img.onerror = () => resolve() })
     }
 
     // Draw image or fallback gradient
@@ -137,8 +143,8 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
       ctx.restore()
     } else {
       const g = ctx.createLinearGradient(imgX, imgY, imgX, imgY + imgH)
-      g.addColorStop(0, '#8B5CF6')
-      g.addColorStop(1, '#EC4899')
+      g.addColorStop(0, '#906EF6')
+      g.addColorStop(1, '#000000')
       ctx.fillStyle = g
       drawRoundedRect(ctx, imgX, imgY, imgW, imgH, 36)
       ctx.fill()
@@ -148,21 +154,20 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     const pad = 28
     const footerX = cardX + pad
     const footerY = cardY + imgH + 16
-  // const footerW = cardW - pad * 2 // not used currently
 
     // Name and age
-    ctx.fillStyle = '#111827'
+    ctx.fillStyle = '#FFFFFF'
     ctx.font = 'bold 48px Inter, Arial'
     const name = user?.name || 'Hamme User'
     ctx.fillText(name, footerX, footerY + 64)
 
-    ctx.fillStyle = '#6B7280'
+    ctx.fillStyle = '#9CA3AF'
     ctx.font = '32px Inter, Arial'
     const age = user?.age ? `${user.age}` : ''
     if (age) ctx.fillText(age, footerX, footerY + 64 + 44)
 
     // Subtitle
-    ctx.fillStyle = '#4B5563'
+    ctx.fillStyle = '#906EF6'
     ctx.font = '28px Inter, Arial'
     ctx.fillText('Find me on Hamme', footerX, footerY + 64 + 44 + 40)
 
@@ -170,18 +175,15 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     const qrSize = 180
     const qrX = cardX + cardW - pad - qrSize
     const qrY = footerY + 20
-    const qrDataUrl = await QRCode.toDataURL(shareUrl, { margin: 0, width: qrSize })
+    const qrDataUrl = await QRCode.toDataURL(shareUrl, { margin: 1, width: qrSize, color: { dark: '#000000', light: '#FFFFFF' } })
     const qrImg = new Image()
     qrImg.src = qrDataUrl
     await new Promise<void>((resolve) => { qrImg.onload = () => resolve() })
 
-    ctx.fillStyle = '#FFFFFF'
-    drawRoundedRect(ctx, qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 16)
-    ctx.fill()
     ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
 
     // Footer branding
-    ctx.fillStyle = '#9CA3AF'
+    ctx.fillStyle = '#666666'
     ctx.font = '24px Inter, Arial'
     ctx.textAlign = 'center'
     ctx.fillText('Scan or tap link in my bio', canvas.width / 2, cardY + cardH + 56)
@@ -207,7 +209,7 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
 
       // Copy link to clipboard as a convenience
       if (shareUrl) {
-        try { await navigator.clipboard.writeText(shareUrl) } catch {}
+        try { await navigator.clipboard.writeText(shareUrl) } catch { }
       }
 
       if (navigator.share && (navigator as any).canShare?.({ files: [file] })) {
@@ -239,7 +241,7 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
       setTimeout(() => setError(''), 3000)
       return
     }
-    
+
     try {
       await navigator.clipboard.writeText(urlToCopy)
       setCopied(true)
@@ -263,30 +265,34 @@ function ShareActions({ profileUrl }: ShareActionsProps) {
     <div className="w-full max-w-sm mx-auto space-y-4">
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <p className="text-red-600 text-sm text-center">{error}</p>
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 backdrop-blur-sm">
+          <p className="text-red-400 text-sm text-center">{error}</p>
         </div>
       )}
 
       {/* Share to Instagram Story */}
-      <button
+      <motion.button
         onClick={handleInstagramShare}
         disabled={loading}
-        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-2xl font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 hover:scale-105 shadow-lg flex items-center justify-center space-x-3 disabled:opacity-50"
+        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-full font-bold text-lg hover:from-purple-500 hover:to-pink-500 transition-colors duration-300 shadow-lg flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       >
         <FontAwesomeIcon icon={faInstagram} className="w-6 h-6" />
-        <span>{loading ? 'Loading...' : 'Share'}</span>
-      </button>
+        <span>{loading ? 'Loading...' : 'Share to Story'}</span>
+      </motion.button>
 
       {/* Copy Link */}
-      <button
+      <motion.button
         onClick={handleCopyLink}
         disabled={loading || !shareUrl}
-        className="w-full bg-black text-white py-4 px-6 rounded-2xl font-semibold text-lg hover:bg-gray-800 transition-all duration-200 hover:scale-105 shadow-lg flex items-center justify-center space-x-3 disabled:opacity-50"
+        className="w-full bg-white text-black py-4 px-6 rounded-full font-bold text-lg hover:bg-gray-200 transition-colors duration-300 shadow-lg flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       >
-        <span className="text-2xl">{copied ? '✅' : '🔗'}</span>
-        <span className="truncate">{loading ? 'Generating Link...' : copied ? 'Link Copied!' : 'Copy link'}</span>
-      </button>
+        <span className="text-xl">{copied ? '✅' : '🔗'}</span>
+        <span>{loading ? 'Generating Link...' : copied ? 'Link Copied!' : 'Copy Link'}</span>
+      </motion.button>
     </div>
   )
 }

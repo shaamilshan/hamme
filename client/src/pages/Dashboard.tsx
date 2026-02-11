@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Header from '../components/Header'
 import ProfileCard from '../components/ProfileCard'
 import ShareActions from '../components/ShareActions'
@@ -74,23 +75,36 @@ function Dashboard() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-black">
       <Header />
 
       {/* Notification */}
-      {showNotification && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-6 py-3 max-w-sm">
-            <p className="text-gray-800 text-center">{showNotification}</p>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            className="fixed top-24 left-1/2 z-50 w-full max-w-sm px-4 pointer-events-none"
+          >
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-2xl px-6 py-3">
+              <p className="text-white font-medium text-center">{showNotification}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content */}
-      <main className="w-full md:max-w-none md:px-0 px-4 pb-12 pt-6 space-y-6">
+      <main className="w-full md:max-w-none md:px-0 px-4 pb-12 pt-24 space-y-8 overflow-x-hidden">
         {/* Stacked Cards Container - Requests stack over user's profile */}
         <div className="flex justify-center">
-          <div className="w-full max-w-sm relative" style={{ minHeight: '560px' }}>
+          <motion.div
+            className="w-full max-w-sm relative"
+            style={{ minHeight: '560px' }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
             {/* User's own profile card (base layer, no action icons) */}
             <div className="absolute inset-0" style={{ zIndex: 1 }}>
               <ProfileCard
@@ -102,53 +116,72 @@ function Dashboard() {
             </div>
 
             {/* Pending request cards stacked on top */}
-            {pending.slice(0, 3).map((p, idx) => {
-              const reverseIdx = Math.min(pending.length, 3) - 1 - idx
-              const scale = 1 - reverseIdx * 0.04
-              const topOffset = reverseIdx * 16
-              const z = 10 + idx
-              const user = p?.user || p
-              return (
-                <div
-                  key={user?._id || idx}
-                  className="absolute left-0 right-0 mx-auto"
-                  style={{ top: `${topOffset}px`, transform: `scale(${scale})`, zIndex: z }}
-                >
-                  <ProfileCard
-                    userOverride={{
-                      id: user?._id,
-                      name: user?.name || 'New request',
-                      age: user?.age,
-                      profilePicture: user?.profilePicture,
-                      dateOfBirth: user?.dateOfBirth,
-                    }}
-                    showEdit={false}
-                    onDateClick={() => handleRequestAction(user?._id, 'date')}
-                    onFriendsClick={() => handleRequestAction(user?._id, 'friends')}
-                    onRejectClick={() => handleRequestAction(user?._id, 'reject')}
-                  />
-                </div>
-              )
-            })}
-          </div>
+            <AnimatePresence>
+              {pending.slice(0, 3).map((p, idx) => {
+                const reverseIdx = Math.min(pending.length, 3) - 1 - idx
+                const scale = 1 - reverseIdx * 0.04
+                const topOffset = reverseIdx * 16
+                const z = 10 + idx
+                const user = p?.user || p
+                return (
+                  <motion.div
+                    key={user?._id || idx}
+                    className="absolute left-0 right-0 mx-auto"
+                    style={{ zIndex: z }}
+                    initial={{ y: -50, opacity: 0, scale: scale }}
+                    animate={{ y: topOffset, opacity: 1, scale: scale }}
+                    exit={{ x: 200, opacity: 0, rotate: 10 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 20, delay: idx * 0.1 }}
+                  >
+                    <ProfileCard
+                      userOverride={{
+                        id: user?._id,
+                        name: user?.name || 'New request',
+                        age: user?.age,
+                        profilePicture: user?.profilePicture,
+                        dateOfBirth: user?.dateOfBirth,
+                      }}
+                      showEdit={false}
+                      onDateClick={() => handleRequestAction(user?._id, 'date')}
+                      onFriendsClick={() => handleRequestAction(user?._id, 'friends')}
+                      onRejectClick={() => handleRequestAction(user?._id, 'reject')}
+                    />
+                  </motion.div>
+                )
+              })}
+            </AnimatePresence>
+          </motion.div>
         </div>
 
         {/* View Requests Link (if there are more requests) */}
         {pending.length > 0 && (
-          <div className="flex justify-center">
-            <button
+          <motion.div
+            className="flex justify-center"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <motion.button
               onClick={() => navigate('/inbox')}
-              className="text-purple-600 font-medium text-sm hover:underline"
+              className="font-medium text-sm hover:underline transition-colors"
+              style={{ color: '#906EF6' }}
+              whileHover={{ scale: 1.05, opacity: 0.9 }}
+              whileTap={{ scale: 0.95 }}
             >
               View all requests ({pending.length})
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         )}
 
         {/* Share Actions */}
-        <div className="flex justify-center">
+        <motion.div
+          className="flex justify-center pb-8"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
           <ShareActions />
-        </div>
+        </motion.div>
       </main>
     </div>
   )

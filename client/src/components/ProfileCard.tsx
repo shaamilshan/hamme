@@ -27,6 +27,7 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
   const [user, setUser] = useState<User | null>(userOverride)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -133,9 +134,23 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
       return
     }
 
+    // Reset progress
+    setUploadProgress(0)
+    setUploading(true)
+    setError(null)
+
+    // Simulate progress
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(interval)
+          return 90
+        }
+        return prev + 10
+      })
+    }, 200)
+
     try {
-      setUploading(true)
-      setError(null)
       // Show local preview instantly
       const preview = await createFilePreview(file)
       setPreviewUrl(preview)
@@ -145,20 +160,31 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
 
       // Upload compressed file to server
       const response = await apiService.uploadProfilePicture(compressedFile)
+
+      clearInterval(interval)
+      setUploadProgress(100)
+
       const updatedUser: User = response.data.user
-      setUser(updatedUser)
-      setPreviewUrl(null)
+
+      // Small delay to show 100% completion
+      setTimeout(() => {
+        setUser(updatedUser)
+        setPreviewUrl(null)
+        setUploading(false)
+        setUploadProgress(0)
+      }, 500)
+
     } catch (err: any) {
+      clearInterval(interval)
+      setUploading(false)
+      setUploadProgress(0)
       console.error('Failed to upload profile picture:', err)
       setError(err.response?.data?.message || 'Failed to upload image. Please try again.')
       setPreviewUrl(null)
     } finally {
-      setUploading(false)
       if (e.target) e.target.value = ''
     }
   }
-
-
 
   const handleDragEnd = async (_: any, info: PanInfo) => {
     const threshold = 100
@@ -199,7 +225,7 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
         drag={draggable}
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragElastic={0.7}
-        onDragStart={() => {}}
+        onDragStart={() => { }}
         onDragEnd={handleDragEnd}
         animate={controls}
         style={{ x, y, rotate }}
@@ -238,22 +264,32 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
           {/* Dark gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"></div>
 
+          {/* Upload Progress Bar Overlay */}
+          {uploading && (
+            <div className="absolute inset-0 z-40 bg-black/40 flex flex-col items-center justify-center backdrop-blur-sm">
+              <div className="w-64 h-2 bg-white/20 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-[#906EF6]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${uploadProgress}%` }}
+                  transition={{ duration: 0.2 }}
+                />
+              </div>
+              <p className="text-white mt-2 font-medium">Uploading...</p>
+            </div>
+          )}
+
           {/* Edit Photo Icon Button */}
-          {showEdit && (
+          {showEdit && !uploading && (
             <button
               onClick={handleEditPhotoClick}
-              disabled={uploading}
-              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full w-10 h-10 flex items-center justify-center shadow-md disabled:opacity-60 disabled:cursor-not-allowed z-20"
+              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full w-10 h-10 flex items-center justify-center shadow-md z-20 transition-transform hover:scale-105 active:scale-95"
               title="Edit Photo"
               aria-label="Edit Photo"
             >
-              {uploading ? (
-                <span className="text-xs font-medium">...</span>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232a2.5 2.5 0 113.536 3.536L8.5 19H5v-3.5l10.232-10.268z"></path>
-                </svg>
-              )}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232a2.5 2.5 0 113.536 3.536L8.5 19H5v-3.5l10.232-10.268z"></path>
+              </svg>
             </button>
           )}
 
