@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Header from '../components/Header'
 import ProfileCard from '../components/ProfileCard'
 import ShareActions from '../components/ShareActions'
+import MatchModal from '../components/MatchModal'
 import { apiService } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 
@@ -10,6 +11,12 @@ function Dashboard() {
   const navigate = useNavigate()
   const [showNotification, setShowNotification] = useState<string | null>(null)
   const [pending, setPending] = useState<any[]>([])
+  const [myProfile, setMyProfile] = useState<any>(null)
+  const [matchModal, setMatchModal] = useState<{ isOpen: boolean; partner: any; matchType: 'date' | 'friends' }>({
+    isOpen: false,
+    partner: null,
+    matchType: 'date'
+  })
 
   const handleDateClick = () => {
     setShowNotification('💚 Great choice! Looking for a date connection.')
@@ -28,17 +35,29 @@ function Dashboard() {
 
   const handleRequestAction = async (userId: string, choice: 'date' | 'friends' | 'reject') => {
     try {
-      await apiService.submitChoice(userId, choice)
+      // Find user before removing
+      const matchedUser = pending.find(p => (p?.user?._id || p?._id || p?.user) === userId)
+      const partner = matchedUser?.user || matchedUser
+
+      const response = await apiService.submitChoice(userId, choice)
       // Remove from pending list
       setPending(prev => prev.filter(p => (p?.user?._id || p?._id) !== userId))
 
-      const messages: Record<string, string> = {
-        date: '💚 Great choice! You chose date.',
-        friends: '👥 Awesome! You chose friends.',
-        reject: '❌ No worries!'
+      if (response.data?.match?.matched) {
+        setMatchModal({
+          isOpen: true,
+          partner: partner,
+          matchType: choice as 'date' | 'friends'
+        })
+      } else {
+        const messages: Record<string, string> = {
+          date: '💚 Great choice! Looking for a date connection.',
+          friends: '👥 Awesome! Making new friends is wonderful.',
+          reject: '❌ No worries!'
+        }
+        setShowNotification(messages[choice])
+        setTimeout(() => setShowNotification(null), 3000)
       }
-      setShowNotification(messages[choice])
-      setTimeout(() => setShowNotification(null), 3000)
     } catch (error) {
       console.error('Failed to submit choice:', error)
     }
@@ -50,9 +69,16 @@ function Dashboard() {
 
     const fetchPending = async () => {
       try {
-        const res = await apiService.getPendingProfiles()
-        setPending(res.data?.profiles || res.data || [])
+        const [pendingRes, profileRes] = await Promise.all([
+          apiService.getPendingProfiles(),
+          !myProfile ? apiService.getProfile() : Promise.resolve({ data: { user: myProfile } })
+        ])
+        setPending(pendingRes.data?.profiles || pendingRes.data || [])
+        if (profileRes.data?.user) {
+          setMyProfile(profileRes.data.user)
+        }
       } catch (e) {
+        // ...
         console.error('Failed to load pending requests', e)
         setPending([])
       }
@@ -184,6 +210,14 @@ function Dashboard() {
           <ShareActions />
         </motion.div>
       </main>
+
+      <MatchModal
+        isOpen={matchModal.isOpen}
+        onClose={() => setMatchModal(prev => ({ ...prev, isOpen: false }))}
+        myProfile={myProfile}
+        partnerProfile={matchModal.partner}
+        matchType={matchModal.matchType as 'date' | 'friends'}
+      />
     </div>
   )
 }

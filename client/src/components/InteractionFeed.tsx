@@ -37,7 +37,7 @@ interface Match {
 
 interface InteractionFeedProps {
   onProfileResponse?: () => void
-  onMatched?: (match: { matched: boolean; matchType: 'date' | 'friends'; matchId: string }) => void
+  onMatched?: (match: { matched: boolean; matchType: 'date' | 'friends'; matchId: string; user?: any }) => void
   view: FeedView
 }
 
@@ -74,6 +74,10 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
   const handleChoice = async (userId: string, choice: 'date' | 'friends' | 'reject') => {
     setSubmitting(userId)
     try {
+      // Find the user profile before removing it
+      const matchedProfileEntry = pendingProfiles.find(p => p.user._id === userId)
+      const matchedUser = matchedProfileEntry?.user
+
       const response = await apiService.submitChoice(userId, choice)
 
       // Remove from pending list (diminish)
@@ -84,8 +88,11 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
       setMatches(matchesResponse.data.matches)
 
       // Notify on mutual match
-      if (response.data.match?.matched) {
-        onMatched?.(response.data.match)
+      if (response.data.match?.matched && matchedUser) {
+        onMatched?.({
+          ...response.data.match,
+          user: matchedUser
+        })
       }
 
       onProfileResponse?.()
