@@ -111,6 +111,7 @@ function Dashboard() {
                 onDateClick={handleDateClick}
                 onFriendsClick={handleFriendsClick}
                 onRejectClick={handleRejectClick}
+                showActions={false}
                 draggable={false}
               />
             </div>

@@ -22,11 +22,12 @@ interface ProfileCardProps {
   onRejectClick?: () => void
   userOverride?: User | null
   showEdit?: boolean
+  showActions?: boolean
   draggable?: boolean
   subtitle?: string
 }
 
-function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride = null, showEdit = true, draggable = true }: ProfileCardProps) {
+function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride = null, showEdit = true, showActions = true, draggable = true }: ProfileCardProps) {
   const [user, setUser] = useState<User | null>(userOverride)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -323,29 +324,31 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
                 </p>
               )}
             </div>
-            <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-3 flex items-center gap-4 pointer-events-auto">
-              <button
-                onClick={(e) => { e.stopPropagation(); onRejectClick?.(); }}
-                className="w-14 h-14 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 hover:bg-red-50 active:scale-95 transition-all duration-200"
-                title="Not Interested"
-              >
-                ❌
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onFriendsClick?.(); }}
-                className="w-14 h-14 bg-white text-yellow-500 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 hover:bg-yellow-50 active:scale-95 transition-all duration-200"
-                title="Just Friends"
-              >
-                ⭐️
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); handlePrimaryAction(); }}
-                className={`w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 active:scale-95 transition-all duration-200 ${isUnder18 ? 'text-blue-600 hover:bg-blue-50' : 'text-pink-600 hover:bg-pink-50'}`}
-                title={isUnder18 ? 'Chat' : 'Accept Date'}
-              >
-                {isUnder18 ? '💬' : '💗'}
-              </button>
-            </div>
+            {showActions && (
+              <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-3 flex items-center gap-4 pointer-events-auto">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRejectClick?.(); }}
+                  className="w-14 h-14 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 hover:bg-red-50 active:scale-95 transition-all duration-200"
+                  title="Not Interested"
+                >
+                  ❌
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onFriendsClick?.(); }}
+                  className="w-14 h-14 bg-white text-yellow-500 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 hover:bg-yellow-50 active:scale-95 transition-all duration-200"
+                  title="Just Friends"
+                >
+                  ⭐️
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handlePrimaryAction(); }}
+                  className={`w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-110 active:scale-95 transition-all duration-200 ${isUnder18 ? 'text-blue-600 hover:bg-blue-50' : 'text-pink-600 hover:bg-pink-50'}`}
+                  title={isUnder18 ? 'Chat' : 'Accept Date'}
+                >
+                  {isUnder18 ? '💬' : '💗'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Text overlay moved above buttons */}

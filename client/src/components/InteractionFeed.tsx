@@ -174,7 +174,7 @@ function InteractionFeed({ onProfileResponse, onMatched, view }: InteractionFeed
           transition={{ duration: 0.5 }}
         >
           <h3 className="text-lg font-bold text-white mb-4 flex items-center">
-            Hamme's
+            Play
           </h3>
 
           {/* Stack container sized to one card height; cards overlap via absolute positioning */}

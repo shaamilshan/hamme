@@ -22,20 +22,20 @@ function Inbox() {
           <motion.button
             onClick={() => setView('requests')}
             className={`flex-1 h-10 rounded-full text-sm font-semibold transition-colors duration-200 ${view === 'requests'
-                ? 'text-white border border-white/20'
-                : 'text-white/50 border border-white/10 hover:text-white/70'
+              ? 'text-white border border-white/20'
+              : 'text-white/50 border border-white/10 hover:text-white/70'
               }`}
             style={view === 'requests' ? { backgroundColor: 'rgba(144, 110, 246, 0.2)' } : {}}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            Hamme's
+            Play
           </motion.button>
           <motion.button
             onClick={() => setView('matches')}
             className={`flex-1 h-10 rounded-full text-sm font-semibold transition-colors duration-200 ${view === 'matches'
-                ? 'text-white'
-                : 'text-white/50 border border-white/10 hover:text-white/70'
+              ? 'text-white'
+              : 'text-white/50 border border-white/10 hover:text-white/70'
               }`}
             style={view === 'matches' ? { backgroundColor: '#906EF6' } : {}}
             whileHover={{ scale: 1.03 }}
