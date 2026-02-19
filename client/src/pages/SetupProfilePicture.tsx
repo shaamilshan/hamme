@@ -6,7 +6,7 @@ import { apiService } from '../services/api';
 // --- Helper Functions ---
 const validateImageFile = (file: File): { isValid: boolean; error?: string } => {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  const maxSizeInMB = 10; // Allow larger originals, we'll compress
+  const maxSizeInMB = 10;
   if (!allowedTypes.includes(file.type)) {
     return { isValid: false, error: 'Please select a valid image file (JPG, PNG, WebP).' };
   }
@@ -19,28 +19,18 @@ const validateImageFile = (file: File): { isValid: boolean; error?: string } => 
 const createFilePreview = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onloadend = () => {
-      resolve(reader.result as string);
-    };
+    reader.onloadend = () => resolve(reader.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 };
 
-
 // --- SVG Icons ---
 const ArrowLeftIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7-7l-7 7 7 7" />
   </svg>
 );
-
-const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-  </svg>
-);
-
 
 // --- Main Component ---
 
@@ -52,8 +42,6 @@ function SetupProfilePicture() {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
-
-  // --- LOGIC (Preserved from original component) ---
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,8 +59,8 @@ function SetupProfilePicture() {
     try {
       const previewUrl = await createFilePreview(file);
       setSelectedImage(previewUrl);
-    } catch (error) {
-      console.error('Error creating preview:', error);
+    } catch (err) {
+      console.error('Error creating preview:', err);
       setError('Failed to create image preview');
     }
   };
@@ -90,7 +78,6 @@ function SetupProfilePicture() {
     setIsLoading(true);
     setError('');
 
-    // Simulate upload progress
     const interval = setInterval(() => {
       setUploadProgress(prev => {
         if (prev >= 90) {
@@ -102,23 +89,14 @@ function SetupProfilePicture() {
     }, 300);
 
     try {
-      // Upload the profile picture
-      // The apiService.uploadProfilePicture method expects a File object
       await apiService.uploadProfilePicture(selectedFile);
-
       clearInterval(interval);
       setUploadProgress(100);
-
-      // Short delay to show 100% before navigating
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 500);
-
+      setTimeout(() => navigate('/dashboard'), 500);
     } catch (err: any) {
       clearInterval(interval);
       setUploadProgress(0);
       console.error('Error uploading profile picture:', err);
-      // More robust error handling
       const errorMessage = err.response?.data?.message || err.message || 'Failed to upload profile picture.';
       setError(errorMessage);
     } finally {
@@ -126,147 +104,165 @@ function SetupProfilePicture() {
     }
   };
 
-  const handleSkip = () => {
-    navigate('/dashboard');
-  };
-
   return (
-    <div className="min-h-screen bg-black flex flex-col font-sans p-6 text-white">
-      <motion.header
-        className="flex-shrink-0 w-full max-w-md mx-auto"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-      >
-        <div className="relative flex items-center justify-between h-14">
-          <button onClick={() => navigate(-1)} className="text-white/70 hover:text-white transition-colors">
-            <ArrowLeftIcon className="w-6 h-6" />
-          </button>
-          <div className="flex-1" />
-          {/* step indicator */}
-          <div className="w-24 h-1 rounded-full bg-white/20">
-            <div className="h-1 w-full rounded-full" style={{ backgroundColor: '#906EF6' }} />
-          </div>
-        </div>
-      </motion.header>
-
-      <main className="flex-grow flex flex-col items-center justify-center w-full max-w-md mx-auto text-center">
-        <motion.h1
-          className="text-3xl font-bold mb-12"
-          style={{ color: '#906EF6' }}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+    <div className="min-h-screen bg-black flex justify-center font-sans">
+      <div className="flex flex-col w-full max-w-md px-6 pt-14 pb-6">
+        {/* Back arrow */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
         >
-          Upload a Profile
+          <button onClick={() => navigate(-1)} className="text-white/80 hover:text-white transition-colors">
+            <ArrowLeftIcon className="w-7 h-7" />
+          </button>
+        </motion.div>
+
+        {/* Heading — centered */}
+        <motion.h1
+          className="text-[42px] leading-tight font-bold mt-4 text-center"
+          style={{ color: '#906EF6' }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+        >
+          Add a face pic
         </motion.h1>
 
-        <motion.div
-          className="relative mb-6 group"
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.3, type: 'spring', stiffness: 200, damping: 20 }}
-        >
+        {/* Everything centered in remaining space */}
+        <div className="flex-grow flex flex-col items-center justify-center">
+          {/* Tooltip hints */}
+          <motion.div
+            className="flex flex-col items-center gap-1.5 mb-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
+          >
+            <div
+              className="flex items-center gap-2.5 px-4 py-2 rounded-lg text-white text-xs font-bold tracking-widest uppercase"
+              style={{ backgroundColor: '#2C2C2E' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 flex-shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              USE A RECENT PHOTO
+            </div>
+            <div
+              className="flex items-center gap-2.5 px-4 py-2 rounded-lg text-white text-xs font-bold tracking-widest uppercase"
+              style={{ backgroundColor: '#2C2C2E' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 flex-shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+              CLEARLY SHOW YOUR FACE
+            </div>
+            {/* Triangle pointer down */}
+            <div
+              className="w-0 h-0"
+              style={{
+                borderLeft: '10px solid transparent',
+                borderRight: '10px solid transparent',
+                borderTop: '10px solid #2C2C2E',
+              }}
+            />
+          </motion.div>
+
+          {/* Hidden file input */}
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/gif"
+            accept="image/jpeg,image/png,image/webp"
             onChange={handleImageSelect}
             className="hidden"
           />
-          <div
+
+          {/* Large purple upload circle */}
+          <motion.button
             onClick={handleUploadClick}
-            className="w-48 h-48 rounded-full flex items-center justify-center cursor-pointer overflow-hidden border-2 relative z-10"
-            style={{
-              backgroundColor: 'rgba(144, 110, 246, 0.1)',
-              borderColor: selectedImage ? '#906EF6' : 'rgba(144, 110, 246, 0.3)'
-            }}
+            className="w-56 h-56 rounded-full flex items-center justify-center cursor-pointer overflow-hidden"
+            style={{ backgroundColor: '#A78BFA' }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.35, type: 'spring', stiffness: 200, damping: 20 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             {selectedImage ? (
               <img src={selectedImage} alt="Profile Preview" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-white/30 hover:text-white/50 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-20 h-20">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
-              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-20 h-20 text-black">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
             )}
-          </div>
-
-          {/* Pulsing ring behind the avatar */}
-          <div className="absolute inset-0 rounded-full animate-pulse z-0" style={{ boxShadow: '0 0 30px rgba(144, 110, 246, 0.2)' }}></div>
-
-          <motion.button
-            onClick={handleUploadClick}
-            className="absolute bottom-2 right-2 w-12 h-12 text-white rounded-full flex items-center justify-center shadow-lg transition-colors z-20"
-            style={{ backgroundColor: '#906EF6', border: '3px solid black' }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <PlusIcon className="w-6 h-6" />
           </motion.button>
-        </motion.div>
 
-        {error &&
-          <motion.p
-            className="text-red-400 text-sm mt-4"
-            initial={{ opacity: 0, y: 10 }}
+          {/* Error */}
+          {error && (
+            <motion.p
+              className="text-red-400 text-xs mt-4"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {error}
+            </motion.p>
+          )}
+
+          {/* Upload progress */}
+          {(isLoading || uploadProgress > 0) && (
+            <div className="w-56 mt-4 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#2C2C2E' }}>
+              <motion.div
+                className="h-full rounded-full"
+                style={{ backgroundColor: '#906EF6' }}
+                initial={{ width: 0 }}
+                animate={{ width: `${uploadProgress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Continue button after selecting / Skip */}
+        {selectedFile ? (
+          <motion.div
+            className="mt-auto pt-6 flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
           >
-            {error}
-          </motion.p>
-        }
-
-        <motion.button
-          onClick={handleSkip}
-          className="mt-8 text-sm font-medium hover:underline transition-all"
-          style={{ color: 'rgba(255, 255, 255, 0.5)' }}
-          whileHover={{ color: '#fff' }}
-        >
-          Skip for now
-        </motion.button>
-
-      </main>
-
-      <motion.footer
-        className="flex-shrink-0 w-full max-w-md mx-auto mt-auto pt-6"
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.6, ease: 'easeOut' }}
-      >
-        <motion.button
-          onClick={handleContinue}
-          disabled={!selectedFile || isLoading}
-          className="w-full text-white font-bold py-4 px-8 rounded-full text-lg flex items-center justify-center space-x-2 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: !selectedFile ? '#333' : '#906EF6',
-            boxShadow: !selectedFile ? 'none' : '0 10px 30px rgba(144, 110, 246, 0.3)'
-          }}
-          whileHover={selectedFile ? { scale: 1.03, boxShadow: '0 0 25px rgba(144, 110, 246, 0.5)' } : {}}
-          whileTap={selectedFile ? { scale: 0.97 } : {}}
-        >
-          <span>{isLoading ? 'Uploading...' : 'Done'}</span>
-          <span>🚀</span>
-        </motion.button>
-
-        {/* Upload Progress Bar */}
-        {(isLoading || uploadProgress > 0) && (
-          <div className="w-full mt-4 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full rounded-full"
+            <motion.button
+              onClick={handleContinue}
+              disabled={isLoading}
+              className="w-16 h-16 rounded-full flex items-center justify-center disabled:opacity-60"
               style={{ backgroundColor: '#906EF6' }}
-              initial={{ width: 0 }}
-              animate={{ width: `${uploadProgress}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 text-black">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              )}
+            </motion.button>
+          </motion.div>
+        ) : (
+          <motion.div
+            className="mt-auto pt-6 flex justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-sm font-medium transition-colors"
+              style={{ color: 'rgba(255, 255, 255, 0.4)' }}
+            >
+              Skip for now
+            </button>
+          </motion.div>
         )}
-
-        <p className="text-xs text-center mt-4" style={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-          By continuing, you agree to our Terms of Use and have
-          read and agreed to our Privacy Policy
-        </p>
-      </motion.footer>
+      </div>
     </div>
   );
 }

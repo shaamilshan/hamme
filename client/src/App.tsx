@@ -5,7 +5,9 @@ import './App.css'
 // Lazy load all pages for code splitting and faster initial load
 const Onboarding = lazy(() => import('./pages/Onboarding'))
 const Login = lazy(() => import('./pages/Login'))
-const Signup = lazy(() => import('./pages/Signup'))
+const SetupName = lazy(() => import('./pages/SetupName'))
+const SetupEmail = lazy(() => import('./pages/SetupEmail'))
+const SetupPassword = lazy(() => import('./pages/SetupPassword'))
 const SetupDOB = lazy(() => import('./pages/SetupDOB'))
 const SetupInstagram = lazy(() => import('./pages/SetupInstagram'))
 const SetupProfilePicture = lazy(() => import('./pages/SetupProfilePicture'))
@@ -28,7 +30,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Onboarding />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/signup" element={<SetupName />} />
+          <Route path="/signup-email" element={<SetupEmail />} />
+          <Route path="/signup-password" element={<SetupPassword />} />
           <Route path="/setup-dob" element={<SetupDOB />} />
           <Route path="/setup-instagram" element={<SetupInstagram />} />
           <Route path="/setup-profile-picture" element={<SetupProfilePicture />} />
