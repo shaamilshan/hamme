@@ -21,13 +21,16 @@ function Header() {
     <header className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
+          {/* Spacer to keep logo strictly centered */}
+          <div className="w-9 sm:w-10"></div>
+
           {/* Logo */}
-          <div className="flex items-center cursor-pointer" onClick={() => navigate('/dashboard')}>
+          <div className="flex items-center justify-center absolute left-1/2 -translate-x-1/2 cursor-pointer" onClick={() => navigate('/dashboard')}>
             <h1 className="text-2xl font-black tracking-tighter" style={{ color: '#906EF6' }}>HAMME</h1>
           </div>
 
-          {/* Navigation Links */}
-          <div className="flex items-center space-x-1 sm:space-x-2">
+          {/* Navigation Links (Logout) */}
+          <div className="flex items-center">
             <motion.button
               onClick={handleLogout}
               className="p-2 text-white/40 hover:text-white transition-colors duration-200 rounded-full hover:bg-white/10"
