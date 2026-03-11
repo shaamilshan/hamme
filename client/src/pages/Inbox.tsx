@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Header from '../components/Header'
+import BottomNavigation from '../components/BottomNavigation'
 import InteractionFeed from '../components/InteractionFeed'
 import MatchModal from '../components/MatchModal'
 import { apiService } from '../services/api'
@@ -24,7 +25,7 @@ function Inbox() {
     <div className="min-h-screen bg-black">
       <Header />
 
-      <main className="max-w-md mx-auto pt-24 pb-8 px-4">
+      <main className="max-w-md mx-auto pt-24 pb-32 px-4">
         {/* Tabs */}
         <motion.div
           className="flex items-center space-x-3 mb-6"
@@ -76,6 +77,7 @@ function Inbox() {
         partnerProfile={matchModal.partner}
         matchType={matchModal.matchType}
       />
+      <BottomNavigation />
     </div>
   )
 }

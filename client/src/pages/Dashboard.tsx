@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from '../components/Header'
+import BottomNavigation from '../components/BottomNavigation'
 import ProfileCard from '../components/ProfileCard'
 import ShareActions from '../components/ShareActions'
 import MatchModal from '../components/MatchModal'
@@ -121,7 +122,7 @@ function Dashboard() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="w-full md:max-w-none md:px-0 px-4 pb-12 pt-24 space-y-8 overflow-x-hidden">
+      <main className="w-full md:max-w-none md:px-0 px-4 pb-32 pt-24 space-y-8 overflow-x-hidden">
         {/* Stacked Cards Container - Requests stack over user's profile */}
         <div className="flex justify-center">
           <motion.div
@@ -218,6 +219,7 @@ function Dashboard() {
         partnerProfile={matchModal.partner}
         matchType={matchModal.matchType as 'date' | 'friends'}
       />
+      <BottomNavigation />
     </div>
   )
 }

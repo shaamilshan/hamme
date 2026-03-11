@@ -5,6 +5,7 @@ import { apiService } from '../services/api'
 import { getImageUrl } from '../utils/imageUtils'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faInstagram } from '@fortawesome/free-brands-svg-icons'
+import BottomNavigation from '../components/BottomNavigation'
 
 const ArrowLeftIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" {...props}>
@@ -248,7 +249,7 @@ function EditProfile() {
 
             {/* Save Button */}
             <motion.footer
-                className="flex-shrink-0 w-full max-w-lg mx-auto px-6 pb-8 pt-4"
+                className="flex-shrink-0 w-full max-w-lg mx-auto px-6 pb-32 pt-4"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.5 }}
@@ -264,6 +265,7 @@ function EditProfile() {
                     {saving ? 'Saving...' : success ? 'Saved ✓' : 'Save Changes'}
                 </motion.button>
             </motion.footer>
+            <BottomNavigation />
         </div>
     )
 }
