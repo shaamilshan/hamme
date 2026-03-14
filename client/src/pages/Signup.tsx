@@ -60,6 +60,13 @@ function Signup() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -129,6 +136,7 @@ function Signup() {
                 placeholder="Full Name"
                 value={formData.name}
                 onChange={handleChange}
+                onKeyDown={handleKeyDown}
                 className="w-full rounded-full px-6 py-4 text-center border-none focus:outline-none focus:ring-2 transition-shadow placeholder-white/40"
                 style={inputStyle}
                 required
@@ -147,6 +155,7 @@ function Signup() {
                 placeholder="Email"
                 value={formData.email}
                 onChange={handleChange}
+                onKeyDown={handleKeyDown}
                 className="w-full rounded-full px-6 py-4 text-center border-none focus:outline-none focus:ring-2 transition-shadow placeholder-white/40"
                 style={inputStyle}
                 required
@@ -166,6 +175,7 @@ function Signup() {
                   placeholder="Password"
                   value={formData.password}
                   onChange={handleChange}
+                  onKeyDown={handleKeyDown}
                   className="w-full rounded-full px-6 py-4 text-center border-none focus:outline-none focus:ring-2 transition-shadow placeholder-white/40"
                   style={inputStyle}
                   required

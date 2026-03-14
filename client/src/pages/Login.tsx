@@ -39,6 +39,13 @@ function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -93,6 +100,7 @@ function Login() {
             placeholder="Email"
             value={formData.email}
             onChange={handleChange}
+            onKeyDown={handleKeyDown}
             className="w-full bg-transparent text-white text-center text-lg px-5 py-4 rounded-2xl border-b-4 focus:outline-none"
             style={{
               backgroundColor: '#2C2C2E',
@@ -116,6 +124,7 @@ function Login() {
               placeholder="Password"
               value={formData.password}
               onChange={handleChange}
+              onKeyDown={handleKeyDown}
               className="w-full bg-transparent text-white text-center text-lg px-5 py-4 rounded-2xl border-b-4 focus:outline-none"
               style={{
                 backgroundColor: '#2C2C2E',
