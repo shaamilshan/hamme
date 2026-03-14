@@ -229,10 +229,12 @@ function Signup() {
           type="submit"
           form="signup-form"
           disabled={loading}
-          className="w-full text-white font-bold py-4 px-8 rounded-full text-lg transition-opacity duration-300 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#906EF6', boxShadow: '0 10px 30px rgba(144, 110, 246, 0.3)' }}
-          whileHover={{ scale: 1.03, boxShadow: '0 0 25px rgba(144, 110, 246, 0.5)' }}
-          whileTap={{ scale: 0.97 }}
+          className="w-full text-white font-bold py-4 px-8 rounded-3xl text-lg shadow-lg disabled:opacity-60"
+          style={{
+            background: 'linear-gradient(to right, #A78BFA, #8B5CF6)',
+          }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
           {loading ? 'Continuing...' : 'Continue'}
         </motion.button>

@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Header from '../components/Header'
 import BottomNavigation from '../components/BottomNavigation'
 import ProfileCard from '../components/ProfileCard'
-import ShareActions from '../components/ShareActions'
 import MatchModal from '../components/MatchModal'
 import { apiService } from '../services/api'
 import { useNavigate } from 'react-router-dom'
+import QRCode from 'qrcode'
+import logo from '../assets/Hamme-logo.png'
 
 function Dashboard() {
   const navigate = useNavigate()
@@ -18,6 +19,8 @@ function Dashboard() {
     partner: null,
     matchType: 'date'
   })
+  const [copied, setCopied] = useState(false)
+  const [shareUrl, setShareUrl] = useState('')
 
   const handleDateClick = () => {
     setShowNotification('💚 Great choice! Looking for a date connection.')
@@ -101,6 +104,168 @@ function Dashboard() {
     }
   }, [])
 
+  // Generate share URL when profile loads
+  useEffect(() => {
+    if (myProfile?._id) {
+      setShareUrl(`${window.location.origin}/profile/${myProfile._id}`)
+    }
+  }, [myProfile])
+
+  // --- Share helpers ---
+  const drawRoundedRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+    ctx.beginPath()
+    ctx.moveTo(x + r, y)
+    ctx.arcTo(x + w, y, x + w, y + h, r)
+    ctx.arcTo(x + w, y + h, x, y + h, r)
+    ctx.arcTo(x, y + h, x, y, r)
+    ctx.arcTo(x, y, x + w, y, r)
+    ctx.closePath()
+  }
+
+  const createStoryImage = async (): Promise<Blob> => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')!
+    canvas.width = 1080
+    canvas.height = 1920
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    try {
+      const brand = new Image()
+      brand.src = logo
+      await new Promise<void>((resolve) => { brand.onload = () => resolve(); brand.onerror = () => resolve() })
+      const brandMaxW = 520
+      const brandW = Math.min(brand.width || brandMaxW, brandMaxW)
+      const scale = brandW / (brand.width || brandMaxW)
+      const brandH = (brand.height || brandMaxW) * scale
+      const bx = (canvas.width - brandW) / 2
+      const by = 80
+      ctx.save()
+      ctx.shadowColor = 'rgba(144, 110, 246, 0.5)'
+      ctx.shadowBlur = 20
+      ctx.drawImage(brand, bx, by, brandW, brandH)
+      ctx.restore()
+    } catch { }
+
+    const cardW = 880, cardH = 1280
+    const cardX = (canvas.width - cardW) / 2, cardY = 200
+    ctx.shadowColor = 'rgba(144, 110, 246, 0.15)'
+    ctx.shadowBlur = 40
+    ctx.shadowOffsetY = 20
+    ctx.fillStyle = '#111111'
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 36)
+    ctx.fill()
+    ctx.strokeStyle = '#333333'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.shadowColor = 'transparent'
+
+    const imgH = 980, imgW = cardW, imgX = cardX, imgY = cardY
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    const profilePath = myProfile?.profilePicture || ''
+    const imgUrl = profilePath ? (profilePath.startsWith('http') ? profilePath : `${base}${profilePath.startsWith('/') ? '' : '/'}${profilePath}`) : ''
+    let imgLoaded = false
+    if (imgUrl) {
+      img.src = imgUrl
+      await new Promise<void>((resolve) => { img.onload = () => { imgLoaded = true; resolve() }; img.onerror = () => resolve() })
+    }
+
+    if (imgLoaded && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      const ratio = Math.max(imgW / img.width, imgH / img.height)
+      const drawW = img.width * ratio, drawH = img.height * ratio
+      const dx = imgX + (imgW - drawW) / 2, dy = imgY + (imgH - drawH) / 2
+      ctx.save()
+      drawRoundedRect(ctx, imgX, imgY, imgW, imgH, 36)
+      ctx.clip()
+      ctx.drawImage(img, dx, dy, drawW, drawH)
+      ctx.restore()
+    } else {
+      const g = ctx.createLinearGradient(imgX, imgY, imgX, imgY + imgH)
+      g.addColorStop(0, '#906EF6')
+      g.addColorStop(1, '#000000')
+      ctx.fillStyle = g
+      drawRoundedRect(ctx, imgX, imgY, imgW, imgH, 36)
+      ctx.fill()
+    }
+
+    const pad = 28, footerX = cardX + pad, footerY = cardY + imgH + 16
+    ctx.fillStyle = '#FFFFFF'
+    ctx.font = 'bold 48px Inter, Arial'
+    ctx.fillText(myProfile?.name || 'Hamme User', footerX, footerY + 64)
+    ctx.fillStyle = '#9CA3AF'
+    ctx.font = '32px Inter, Arial'
+    if (myProfile?.age) ctx.fillText(`${myProfile.age}`, footerX, footerY + 64 + 44)
+    ctx.fillStyle = '#906EF6'
+    ctx.font = '28px Inter, Arial'
+    ctx.fillText('Find me on Hamme', footerX, footerY + 64 + 44 + 40)
+
+    const qrSize = 180
+    const qrX = cardX + cardW - pad - qrSize, qrY = footerY + 20
+    const qrDataUrl = await QRCode.toDataURL(shareUrl, { margin: 1, width: qrSize, color: { dark: '#000000', light: '#FFFFFF' } })
+    const qrImg = new Image()
+    qrImg.src = qrDataUrl
+    await new Promise<void>((resolve) => { qrImg.onload = () => resolve() })
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+
+    ctx.fillStyle = '#666666'
+    ctx.font = '24px Inter, Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText('Scan or tap link in my bio', canvas.width / 2, cardY + cardH + 56)
+    ctx.textAlign = 'left'
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'))
+    if (blob) return blob
+    const dataUrl = canvas.toDataURL('image/png')
+    const byteString = atob(dataUrl.split(',')[1])
+    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0]
+    const ab = new ArrayBuffer(byteString.length)
+    const ia = new Uint8Array(ab)
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+    return new Blob([ab], { type: mimeString })
+  }
+
+  const handleInstagramShare = async () => {
+    try {
+      const blob = await createStoryImage()
+      const file = new File([blob], 'hamme-story.png', { type: 'image/png' })
+      if (shareUrl) {
+        try { await navigator.clipboard.writeText(shareUrl) } catch { }
+      }
+      if (navigator.share && (navigator as any).canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Find me on Hamme', text: 'Check out my profile on Hamme' })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'hamme-story.png'
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Share failed', e)
+    }
+  }
+
+  const handleCopyLink = async () => {
+    if (!shareUrl || shareUrl.includes('undefined')) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      const textArea = document.createElement('textarea')
+      textArea.value = shareUrl
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black">
       <Header />
@@ -138,6 +303,9 @@ function Dashboard() {
                 onDateClick={handleDateClick}
                 onFriendsClick={handleFriendsClick}
                 onRejectClick={handleRejectClick}
+                onInstagramShare={handleInstagramShare}
+                onCopyLink={handleCopyLink}
+                linkCopied={copied}
                 showActions={false}
                 draggable={false}
               />
@@ -201,15 +369,7 @@ function Dashboard() {
           </motion.div>
         )}
 
-        {/* Share Actions */}
-        <motion.div
-          className="flex justify-center pb-8"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-        >
-          <ShareActions />
-        </motion.div>
+
       </main>
 
       <MatchModal

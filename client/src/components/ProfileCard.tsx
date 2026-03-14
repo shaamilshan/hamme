@@ -20,6 +20,9 @@ interface ProfileCardProps {
   onDateClick?: () => void
   onFriendsClick?: () => void
   onRejectClick?: () => void
+  onInstagramShare?: () => void
+  onCopyLink?: () => void
+  linkCopied?: boolean
   userOverride?: User | null
   showEdit?: boolean
   showActions?: boolean
@@ -27,7 +30,7 @@ interface ProfileCardProps {
   subtitle?: string
 }
 
-function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride = null, showEdit = true, showActions = true, draggable = true }: ProfileCardProps) {
+function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramShare, onCopyLink, linkCopied, userOverride = null, showEdit = true, showActions = true, draggable = true }: ProfileCardProps) {
   const [user, setUser] = useState<User | null>(userOverride)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -324,6 +327,29 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, userOverride 
                 </p>
               )}
             </div>
+            {/* Share icon buttons - only on own card */}
+            {!showActions && (onInstagramShare || onCopyLink) && (
+              <div className="absolute bottom-6 right-6 flex flex-col gap-3 pointer-events-auto z-20">
+                {onInstagramShare && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onInstagramShare(); }}
+                    className="w-11 h-11 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center hover:bg-white/25 active:scale-90 transition-all duration-200 shadow-lg"
+                    title="Share to Instagram Story"
+                  >
+                    <FontAwesomeIcon icon={faInstagram} className="w-5 h-5 text-white" />
+                  </button>
+                )}
+                {onCopyLink && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCopyLink(); }}
+                    className="w-11 h-11 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center hover:bg-white/25 active:scale-90 transition-all duration-200 shadow-lg"
+                    title={linkCopied ? 'Copied!' : 'Copy Link'}
+                  >
+                    <span className="text-white text-lg">{linkCopied ? '✅' : '🔗'}</span>
+                  </button>
+                )}
+              </div>
+            )}
             {showActions && (
               <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-3 flex items-center gap-4 pointer-events-auto">
                 <button
