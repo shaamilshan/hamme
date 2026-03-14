@@ -12,6 +12,7 @@ interface User {
   profilePicture?: string
   instagramId?: string
   bio?: string
+  photos?: string[]
 }
 
 interface ExistingVote {
@@ -131,15 +132,15 @@ function PublicProfile() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8 bg-white/10 rounded-2xl backdrop-blur">
-          <img src={logo} alt="Hamme" className="h-8 w-auto mx-auto mb-4 opacity-90" />
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center max-w-md w-full mx-auto p-8 rounded-2xl">
+          <img src={logo} alt="Hamme" className="h-10 w-auto mx-auto mb-8 drop-shadow-[0_0_15px_rgba(144,110,246,0.5)]" />
           <div className="text-6xl mb-4">😕</div>
           <h2 className="text-2xl font-bold text-white mb-2">Profile Not Found</h2>
           <p className="text-white/80 mb-6">{error}</p>
           <button
             onClick={() => navigate('/')}
-            className="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
+            className="w-full bg-white text-black px-6 py-4 rounded-xl font-bold hover:bg-gray-200 transition-colors duration-200"
           >
             Go to Hamme
           </button>
@@ -150,9 +151,9 @@ function PublicProfile() {
 
   if (hasSubmitted && !matchResult) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8 bg-white/10 rounded-2xl backdrop-blur">
-          <img src={logo} alt="Hamme" className="h-8 w-auto mx-auto mb-4 opacity-90" />
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center max-w-md w-full mx-auto p-8 rounded-2xl">
+          <img src={logo} alt="Hamme" className="h-10 w-auto mx-auto mb-8 drop-shadow-[0_0_15px_rgba(144,110,246,0.5)]" />
           <div className="text-6xl mb-4">✅</div>
           <h2 className="text-2xl font-bold text-white mb-2">Choice Submitted!</h2>
           <p className="text-white/80 mb-6">
@@ -160,7 +161,7 @@ function PublicProfile() {
           </p>
           <button
             onClick={() => navigate('/dashboard')}
-            className="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
+            className="w-full bg-white text-black px-6 py-4 rounded-xl font-bold hover:bg-gray-200 transition-colors duration-200"
           >
             Go to Dashboard
           </button>
@@ -171,17 +172,17 @@ function PublicProfile() {
 
   if (matchResult) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8 bg-white/10 rounded-2xl backdrop-blur">
-          <img src={logo} alt="Hamme" className="h-8 w-auto mx-auto mb-4 opacity-90" />
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+        <div className="text-center max-w-md w-full mx-auto p-8 rounded-2xl">
+          <img src={logo} alt="Hamme" className="h-10 w-auto mx-auto mb-8 drop-shadow-[0_0_15px_rgba(144,110,246,0.5)]" />
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-bold text-white mb-2">It's a Match!</h2>
-          <p className="text-white/80 mb-6">
+          <p className="text-white/80 mb-8">
             You and {user?.name} both chose "{matchResult.matchType}"! You can now start chatting.
           </p>
           <button
             onClick={() => navigate('/inbox')}
-            className="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
+            className="w-full bg-white text-black px-6 py-4 rounded-xl font-bold hover:bg-gray-200 transition-colors duration-200"
           >
             Go to Messages
           </button>
@@ -211,20 +212,20 @@ function PublicProfile() {
     }
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8 bg-white/10 rounded-2xl backdrop-blur">
-          <img src={logo} alt="Hamme" className="h-8 w-auto mx-auto mb-4 opacity-90" />
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+        <div className="text-center max-w-md w-full mx-auto p-8 rounded-2xl">
+          <img src={logo} alt="Hamme" className="h-10 w-auto mx-auto mb-8 drop-shadow-[0_0_15px_rgba(144,110,246,0.5)]" />
           <div className="text-6xl mb-4">{getChoiceEmoji(existingVote.choice)}</div>
           <h2 className="text-2xl font-bold text-white mb-2">Already Voted</h2>
           <p className="text-white/80 mb-4">
             You chose "{getChoiceText(existingVote.choice)}" for {user?.name}
           </p>
-          <p className="text-white/60 text-sm mb-6">
+          <p className="text-white/60 text-sm mb-8">
             You can vote again in {getTimeRemaining()}
           </p>
           <button
             onClick={() => navigate('/dashboard')}
-            className="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
+            className="w-full bg-white text-black px-6 py-4 rounded-xl font-bold hover:bg-gray-200 transition-colors duration-200"
           >
             Go to Dashboard
           </button>
@@ -236,22 +237,33 @@ function PublicProfile() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 flex flex-col items-center justify-center p-4 space-y-4">
-      <img src={logo} alt="Hamme" className="h-8 w-auto opacity-90" />
-      <p className="text-white/80 text-xs">Tap your choice below. Your selection is private.</p>
-      <ProfileCard
-        userOverride={{
-          id: user.id,
-          name: user.name,
-          age: user.age,
-          profilePicture: user.profilePicture,
-          instagramId: user.instagramId,
-        }}
-        showEdit={false}
-        onDateClick={() => !submitting && guardedChoice('date')}
-        onFriendsClick={() => !submitting && guardedChoice('friends')}
-        onRejectClick={() => !submitting && guardedChoice('reject')}
-      />
+    <div className="min-h-screen bg-black flex flex-col p-4 w-full">
+      {/* Top Header - Matches Dashboard */}
+      <div className="flex justify-between items-center w-full mb-6 mt-2 relative z-50">
+        <div className="flex items-center gap-3">
+          <img src={logo} alt="Hamme" className="h-8 w-auto drop-shadow-[0_0_15px_rgba(144,110,246,0.5)]" />
+          <span className="text-white font-bold text-xl tracking-wide">Hamme</span>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm mx-auto relative h-[calc(100vh-140px)] min-h-[500px]">
+        <ProfileCard
+          userOverride={{
+            id: user.id,
+            name: user.name,
+            age: user.age,
+            profilePicture: user.profilePicture,
+            instagramId: user.instagramId,
+            photos: user.photos || (user.profilePicture ? [user.profilePicture] : []),
+          }}
+          showEdit={false}
+          onDateClick={() => !submitting && guardedChoice('date')}
+          onFriendsClick={() => !submitting && guardedChoice('friends')}
+          onRejectClick={() => !submitting && guardedChoice('reject')}
+        />
+        <p className="text-white/60 text-xs mt-6 text-center">Tap your choice below. Your selection is private.</p>
+      </div>
     </div>
   )
 }
