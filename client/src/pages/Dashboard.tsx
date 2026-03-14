@@ -15,8 +15,12 @@ function Dashboard() {
   const [pending, setPending] = useState<any[]>([])
   const [myProfile, setMyProfile] = useState<any>(null)
   const [matchModal, setMatchModal] = useState<{ isOpen: boolean; partner: any; matchType: 'date' | 'friends' }>({
-    isOpen: false,
-    partner: null,
+    isOpen: true,
+    partner: {
+      name: 'Alex',
+      profilePicture: '',
+      instagramId: 'alex_demo',
+    },
     matchType: 'date'
   })
   const [copied, setCopied] = useState(false)
