@@ -227,7 +227,7 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramSh
   }
 
   return (
-    <div className="w-full max-w-sm mx-auto relative cursor-grab active:cursor-grabbing">
+    <div className="w-full h-full max-w-sm mx-auto relative cursor-grab active:cursor-grabbing">
       <motion.div
         drag={draggable}
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
@@ -237,7 +237,7 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramSh
         animate={controls}
         style={{ x, y, rotate }}
         whileTap={{ scale: 1.05 }}
-        className="bg-white rounded-3xl shadow-xl overflow-hidden relative"
+        className="bg-white rounded-3xl shadow-xl overflow-hidden relative h-full"
       >
         {/* Swipe Feedback Overlays */}
         <motion.div style={{ opacity: likeOpacity }} className="absolute inset-0 bg-green-500/30 z-30 pointer-events-none flex items-center justify-center">
@@ -252,7 +252,7 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramSh
 
         {/* Profile Image with Overlay - Hold to reveal actions (Keeping legacy interactions as fallback) */}
         <div
-          className="relative h-[520px] select-none"
+          className="relative h-full select-none"
         >
           {profileImageUrl ? (
             <img

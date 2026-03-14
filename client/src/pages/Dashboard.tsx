@@ -287,12 +287,11 @@ function Dashboard() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="w-full md:max-w-none md:px-0 px-4 pb-32 pt-24 space-y-8 overflow-x-hidden">
+      <main className="fixed inset-0 top-16 bottom-[72px] w-full overflow-hidden flex flex-col">
         {/* Stacked Cards Container - Requests stack over user's profile */}
-        <div className="flex justify-center">
+        <div className="flex-1 flex justify-center items-stretch px-4 py-3">
           <motion.div
             className="w-full max-w-sm relative"
-            style={{ minHeight: '560px' }}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -352,7 +351,7 @@ function Dashboard() {
         {/* View Requests Link (if there are more requests) */}
         {pending.length > 0 && (
           <motion.div
-            className="flex justify-center"
+            className="flex justify-center py-2"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
