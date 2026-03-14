@@ -13,22 +13,15 @@ const ArrowLeftIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 )
 
-const CameraIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.04l-.821 1.315z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-    </svg>
-)
-
 interface UserProfile {
     name: string
     instagramId?: string
     profilePicture?: string
+    photos?: string[]
 }
 
 function EditProfile() {
     const navigate = useNavigate()
-    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const [profile, setProfile] = useState<UserProfile>({ name: '' })
     const [loading, setLoading] = useState(true)
@@ -36,7 +29,8 @@ function EditProfile() {
     const [uploading, setUploading] = useState(false)
     const [success, setSuccess] = useState(false)
     const [error, setError] = useState('')
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+    const [photos, setPhotos] = useState<string[]>([])
+    const addPhotoInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -47,7 +41,9 @@ function EditProfile() {
                     name: user.name || '',
                     instagramId: user.instagramId || '',
                     profilePicture: user.profilePicture || '',
+                    photos: user.photos || [],
                 })
+                setPhotos(user.photos || [])
             } catch (err) {
                 console.error('Failed to load profile:', err)
                 setError('Failed to load profile')
@@ -81,28 +77,42 @@ function EditProfile() {
         }
     }
 
-    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
+        if (photos.length >= 6) {
+            setError('Maximum 6 photos allowed')
+            return
+        }
 
-        // Show preview immediately
-        const preview = URL.createObjectURL(file)
-        setPreviewUrl(preview)
         setUploading(true)
-
+        setError('')
         try {
-            const res = await apiService.uploadProfilePicture(file)
-            setProfile(prev => ({ ...prev, profilePicture: res.data.fileUrl || res.data.user?.profilePicture }))
-        } catch (err) {
+            const res = await apiService.uploadPhoto(file)
+            const updatedPhotos = res.data.user?.photos || [...photos, res.data.fileUrl]
+            setPhotos(updatedPhotos)
+            setProfile(prev => ({ ...prev, photos: updatedPhotos, profilePicture: res.data.user?.profilePicture || prev.profilePicture }))
+        } catch (err: any) {
             console.error('Upload failed:', err)
-            setError('Failed to upload photo')
-            setPreviewUrl(null)
+            setError(err.response?.data?.message || 'Failed to upload photo')
         } finally {
             setUploading(false)
+            if (e.target) e.target.value = ''
         }
     }
 
-    const profileImageUrl = previewUrl || (profile.profilePicture ? getImageUrl(profile.profilePicture) : null)
+    const handleRemovePhoto = async (index: number) => {
+        setError('')
+        try {
+            const res = await apiService.deletePhoto(index)
+            const updatedPhotos = res.data.user?.photos || []
+            setPhotos(updatedPhotos)
+            setProfile(prev => ({ ...prev, photos: updatedPhotos, profilePicture: res.data.user?.profilePicture || '' }))
+        } catch (err: any) {
+            console.error('Delete failed:', err)
+            setError(err.response?.data?.message || 'Failed to delete photo')
+        }
+    }
 
     const inputStyle = {
         backgroundColor: 'rgba(144, 110, 246, 0.1)',
@@ -139,50 +149,58 @@ function EditProfile() {
                 </div>
             </motion.header>
 
-            <main className="flex-grow w-full max-w-lg mx-auto px-6 py-8 space-y-6">
-                {/* Profile Picture */}
+            <main className="flex-grow w-full max-w-lg mx-auto px-6 py-8 space-y-6 overflow-y-auto">
+                {/* Multi-Photo Grid */}
                 <motion.div
-                    className="flex justify-center"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.4, delay: 0.1 }}
                 >
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="relative group"
-                        disabled={uploading}
-                    >
-                        <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-[#906EF6]/40 shadow-lg shadow-[#906EF6]/10">
-                            {profileImageUrl ? (
-                                <img src={profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-[#906EF6] to-purple-800 flex items-center justify-center">
-                                    <span className="text-white text-3xl font-bold">{profile.name?.charAt(0)?.toUpperCase()}</span>
-                                </div>
-                            )}
-                        </div>
-                        {/* Camera overlay */}
-                        {!uploading && (
-                            <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <CameraIcon className="w-8 h-8 text-white" />
+                    <label className="block text-sm text-white/50 mb-3 font-medium">Photos (max 6)</label>
+                    <div className="grid grid-cols-3 gap-3">
+                        {/* Existing photos */}
+                        {photos.map((photo, i) => (
+                            <div key={i} className="relative aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/10 group">
+                                <img src={getImageUrl(photo)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                                {i === 0 && (
+                                    <div className="absolute top-1.5 left-1.5 bg-[#906EF6] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                        Main
+                                    </div>
+                                )}
+                                <button
+                                    onClick={() => handleRemovePhoto(i)}
+                                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                                >
+                                    ✕
+                                </button>
                             </div>
+                        ))}
+                        {/* Add photo slot */}
+                        {photos.length < 6 && (
+                            <button
+                                onClick={() => addPhotoInputRef.current?.click()}
+                                disabled={uploading}
+                                className="aspect-[3/4] rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center text-white/40 hover:text-white/60 hover:border-[#906EF6]/50 transition-all"
+                            >
+                                {uploading ? (
+                                    <div className="w-8 h-8 border-3 border-[#906EF6] border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                        </svg>
+                                        <span className="text-xs mt-1">Add</span>
+                                    </>
+                                )}
+                            </button>
                         )}
-                        {/* Upload spinner */}
-                        {uploading && (
-                            <div className="absolute inset-0 rounded-full flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
-                                <div className="w-10 h-10 border-4 border-[#906EF6] border-t-transparent rounded-full animate-spin" />
-                            </div>
-                        )}
-                        <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#906EF6] flex items-center justify-center shadow-lg">
-                            <CameraIcon className="w-4 h-4 text-white" />
-                        </div>
-                    </button>
+                    </div>
                     <input
-                        ref={fileInputRef}
+                        ref={addPhotoInputRef}
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={handlePhotoChange}
+                        onChange={handleAddPhoto}
                     />
                 </motion.div>
 

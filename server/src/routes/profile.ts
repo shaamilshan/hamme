@@ -275,6 +275,113 @@ router.post('/upload-picture', authenticateToken, upload.single('profilePicture'
   }
 }, handleUploadError)
 
+// Upload a photo to photos[] array (max 6)
+router.post('/upload-photo', authenticateToken, upload.single('photo'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' })
+    }
+
+    const userId = req.user._id
+    const currentUser = await User.findById(userId)
+    if (!currentUser) {
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
+    const currentPhotos = currentUser.photos || []
+    if (currentPhotos.length >= 6) {
+      return res.status(400).json({ success: false, message: 'Maximum 6 photos allowed' })
+    }
+
+    // Upload to Cloudinary
+    const uploadResult: any = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'hamme/photos',
+          resource_type: 'image',
+          quality: 'auto:good',
+          fetch_format: 'auto',
+          public_id: `photo-${userId}-${Date.now()}`,
+          eager_async: true,
+          overwrite: true,
+        },
+        (error, result) => {
+          if (error) return reject(error)
+          resolve(result)
+        }
+      )
+      uploadStream.end(req.file!.buffer)
+    })
+
+    const fileUrl = uploadResult.secure_url
+
+    // Push to photos array and set profilePicture to the first photo if not set
+    const updateFields: any = {
+      $push: { photos: fileUrl }
+    }
+
+    // If no profile picture yet, set it to this photo
+    if (!currentUser.profilePicture || currentPhotos.length === 0) {
+      updateFields.profilePicture = fileUrl
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateFields,
+      { new: true, runValidators: true }
+    ).select('-password')
+
+    res.json({
+      success: true,
+      message: 'Photo uploaded successfully',
+      user: updatedUser,
+      fileUrl
+    })
+  } catch (error) {
+    console.error('Error uploading photo:', error)
+    res.status(500).json({ success: false, message: 'Internal server error' })
+  }
+}, handleUploadError)
+
+// Delete a photo from photos[] by index
+router.delete('/photo/:index', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const index = parseInt(req.params.index, 10)
+    const userId = req.user._id
+
+    const currentUser = await User.findById(userId)
+    if (!currentUser) {
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
+    const photos = currentUser.photos || []
+    if (index < 0 || index >= photos.length) {
+      return res.status(400).json({ success: false, message: 'Invalid photo index' })
+    }
+
+    // Remove the photo at the given index
+    photos.splice(index, 1)
+
+    // Update profilePicture to the first remaining photo, or clear it
+    const profilePicture = photos.length > 0 ? photos[0] : ''
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { photos, profilePicture },
+      { new: true, runValidators: true }
+    ).select('-password')
+
+    res.json({
+      success: true,
+      message: 'Photo deleted successfully',
+      user: updatedUser
+    })
+  } catch (error) {
+    console.error('Error deleting photo:', error)
+    res.status(500).json({ success: false, message: 'Internal server error' })
+  }
+})
+
 // Update user's profile picture (for base64 data - legacy support)
 router.patch('/profile-picture', authenticateToken, async (req: Request, res: Response) => {
   try {

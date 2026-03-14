@@ -72,6 +72,17 @@ export const apiService = {
       }
     })
   },
+  uploadPhoto: (file: File) => {
+    const formData = new FormData()
+    formData.append('photo', file)
+    return api.post('/api/profile/upload-photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  },
+  deletePhoto: (index: number) =>
+    api.delete(`/api/profile/photo/${index}`),
   getProfile: () =>
     api.get('/api/profile/profile'),
 

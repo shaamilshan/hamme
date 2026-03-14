@@ -14,6 +14,7 @@ interface User {
   profilePicture?: string
   age?: number
   instagramId?: string
+  photos?: string[]
 }
 
 interface ProfileCardProps {
@@ -37,6 +38,7 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramSh
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   /* Animation & Swipe Logic */
@@ -79,6 +81,23 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramSh
 
     fetchUserProfile()
   }, [userOverride])
+
+  // Auto-slide photos every 3 seconds
+  const photoCountRef = useRef(0)
+  useEffect(() => {
+    // Update ref so we always have the latest count
+    const photos = user?.photos || []
+    const count = photos.length > 0 ? photos.length : (user?.profilePicture ? 1 : 0)
+    photoCountRef.current = count
+  }, [user])
+
+  useEffect(() => {
+    if (photoCountRef.current <= 1) return
+    const timer = setInterval(() => {
+      setCurrentPhotoIndex(prev => (prev + 1) % photoCountRef.current)
+    }, 3000)
+    return () => clearInterval(timer)
+  }, [currentPhotoIndex, user])
 
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date()
@@ -123,7 +142,34 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramSh
 
   const derivedAge = user.dateOfBirth ? calculateAge(user.dateOfBirth) : user.age
   const isUnder18 = typeof derivedAge === 'number' && derivedAge < 18
-  const profileImageUrl = previewUrl || (user.profilePicture ? getImageUrl(user.profilePicture) : null)
+
+  // Build the list of all photos for the slideshow
+  const allPhotos: string[] = []
+  if (user.photos && user.photos.length > 0) {
+    user.photos.forEach(p => {
+      const url = getImageUrl(p)
+      if (url && !allPhotos.includes(url)) allPhotos.push(url)
+    })
+  } else if (user.profilePicture) {
+    allPhotos.push(getImageUrl(user.profilePicture))
+  }
+  // Override with preview if uploading
+  const displayPhotos = previewUrl ? [previewUrl, ...allPhotos.slice(1)] : allPhotos
+  const safeIndex = displayPhotos.length > 0 ? Math.min(currentPhotoIndex, displayPhotos.length - 1) : 0
+  const currentImageUrl = displayPhotos.length > 0 ? displayPhotos[safeIndex] : null
+
+  const handlePhotoTap = (e: React.MouseEvent) => {
+    if (displayPhotos.length <= 1) return
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const tapX = e.clientX - rect.left
+    if (tapX < rect.width / 2) {
+      // Tap left — previous
+      setCurrentPhotoIndex(prev => Math.max(0, prev - 1))
+    } else {
+      // Tap right — next
+      setCurrentPhotoIndex(prev => Math.min(displayPhotos.length - 1, prev + 1))
+    }
+  }
 
   const handleEditPhotoClick = () => {
     setError(null)
@@ -250,13 +296,14 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramSh
           <div className="border-4 border-blue-500 text-blue-500 font-bold text-4xl px-4 py-2 rounded bg-white/20 backdrop-blur-sm">FRIENDS</div>
         </motion.div>
 
-        {/* Profile Image with Overlay - Hold to reveal actions (Keeping legacy interactions as fallback) */}
+        {/* Profile Image with Overlay */}
         <div
           className="relative h-full select-none"
+          onClick={handlePhotoTap}
         >
-          {profileImageUrl ? (
+          {currentImageUrl ? (
             <img
-              src={profileImageUrl}
+              src={currentImageUrl}
               alt={user.name}
               className="w-full h-full object-cover pointer-events-none"
             />
@@ -265,6 +312,21 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramSh
               <span className="text-white text-6xl font-bold">
                 {user.name.charAt(0).toUpperCase()}
               </span>
+            </div>
+          )}
+
+          {/* Segment bars at the top */}
+          {displayPhotos.length > 1 && (
+            <div className="absolute top-3 left-3 right-3 z-20 flex gap-1 pointer-events-none">
+              {displayPhotos.map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-1 h-[3px] rounded-full transition-colors duration-200"
+                  style={{
+                    backgroundColor: i === safeIndex ? '#fff' : 'rgba(255,255,255,0.35)',
+                  }}
+                />
+              ))}
             </div>
           )}
 
@@ -286,30 +348,6 @@ function ProfileCard({ onDateClick, onFriendsClick, onRejectClick, onInstagramSh
             </div>
           )}
 
-          {/* Edit Photo Icon Button */}
-          {showEdit && !uploading && (
-            <button
-              onClick={handleEditPhotoClick}
-              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full w-10 h-10 flex items-center justify-center shadow-md z-20 transition-transform hover:scale-105 active:scale-95"
-              title="Edit Photo"
-              aria-label="Edit Photo"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232a2.5 2.5 0 113.536 3.536L8.5 19H5v-3.5l10.232-10.268z"></path>
-              </svg>
-            </button>
-          )}
-
-          {/* Hidden file input */}
-          {showEdit && (
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          )}
 
           {/* Name & Age above bottom action buttons row */}
           <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3">
